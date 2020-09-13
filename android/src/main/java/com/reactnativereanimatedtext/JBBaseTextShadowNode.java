@@ -114,12 +114,12 @@ public abstract class JBBaseTextShadowNode extends LayoutShadowNode {
     JBBaseTextShadowNode textShadowNode,
     SpannableStringBuilder sb,
     List<SetSpanOperation> ops,
-    TextAttributes parentTextAttributes,
+    JBTextAttributes parentTextAttributes,
     boolean supportsInlineViews,
     Map<Integer, ReactShadowNode> inlineViews,
     int start) {
 
-    TextAttributes textAttributes;
+    JBTextAttributes textAttributes;
     if (parentTextAttributes != null) {
       textAttributes = parentTextAttributes.applyChild(textShadowNode.mTextAttributes);
     } else {
@@ -334,7 +334,7 @@ public abstract class JBBaseTextShadowNode extends LayoutShadowNode {
     return sb;
   }
 
-  protected TextAttributes mTextAttributes;
+  protected JBTextAttributes mTextAttributes;
 
   protected boolean mIsColorSet = false;
   protected int mColor;
@@ -403,7 +403,7 @@ public abstract class JBBaseTextShadowNode extends LayoutShadowNode {
 
   public JBBaseTextShadowNode(
     @Nullable ReactTextViewManagerCallback reactTextViewManagerCallback) {
-    mTextAttributes = new TextAttributes();
+    mTextAttributes = new JBTextAttributes();
     mReactTextViewManagerCallback = reactTextViewManagerCallback;
   }
 
