@@ -41,7 +41,8 @@ type ResponseHandlers = {
 };
 
 type Props = TextProps & {
-  forwardedRef: React.Ref<IText>;
+  forwardedRef?: React.Ref<IText>;
+  text: string;
 };
 
 type State = {
@@ -92,7 +93,7 @@ const viewConfig = {
  *
  * See https://reactnative.dev/docs/text.html
  */
-class TouchableText extends React.Component<Props, State> {
+class TouchableText extends React.ComponentClass<Props, State> {
   static defaultProps = {
     accessible: true,
     allowFontScaling: true,
@@ -257,7 +258,7 @@ const RCTText = createReactNativeComponentClass(
   () => viewConfig
 );
 
-const Text = (props: TextProps, forwardedRef?: React.Ref<IText>) => {
+const Text = (props: Props, forwardedRef?: React.Ref<IText>) => {
   // @ts-expect-error
   return <TouchableText {...props} forwardedRef={forwardedRef} />;
 };
@@ -274,8 +275,8 @@ type TextStatics = {
   propTypes: typeof DeprecatedTextPropTypes;
 };
 
-module.exports = TextToExport as React.Component<
-  TextProps,
+export const AnimateableText = TextToExport as React.ComponentClass<
+  Props,
   React.ElementRef<HostComponent<TextProps>>
 > &
   TextStatics;

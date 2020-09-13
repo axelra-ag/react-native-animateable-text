@@ -1,6 +1,3 @@
-/**
- * @flow
- * @format
- */
+import { AnimateableText } from './AnimateableText';
 
-export const AnimatedText = require('./AnimatedText');
+export default AnimateableText;
