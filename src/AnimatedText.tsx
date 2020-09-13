@@ -17,34 +17,42 @@ const Touchable = require('react-native/Libraries/Components/Touchable/Touchable
 const createReactNativeComponentClass = require('react-native/Libraries/Renderer/shims/createReactNativeComponentClass');
 const nullthrows = require('nullthrows');
 const processColor = require('react-native/Libraries/StyleSheet/processColor');
+import type {
+  TextProps,
+  Text as IText,
+  GestureResponderEvent,
+  HostComponent,
+} from 'react-native';
 
-import type { PressEvent } from 'react-native/Libraries/Types/CoreEventTypes';
-import type { HostComponent } from 'react-native/Libraries/Renderer/shims/ReactNativeTypes';
-import type { PressRetentionOffset, TextProps } from './TextProps';
+type PressRetentionOffset = {
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+};
 
-type ResponseHandlers = $ReadOnly<{|
-  onStartShouldSetResponder: () => boolean,
-  onResponderGrant: (event: PressEvent, dispatchID: string) => void,
-  onResponderMove: (event: PressEvent) => void,
-  onResponderRelease: (event: PressEvent) => void,
-  onResponderTerminate: (event: PressEvent) => void,
-  onResponderTerminationRequest: () => boolean,
-|}>;
+type ResponseHandlers = {
+  onStartShouldSetResponder: () => boolean;
+  onResponderGrant: (event: GestureResponderEvent, dispatchID: string) => void;
+  onResponderMove: (event: GestureResponderEvent) => void;
+  onResponderRelease: (event: GestureResponderEvent) => void;
+  onResponderTerminate: (event: GestureResponderEvent) => void;
+  onResponderTerminationRequest: () => boolean;
+};
 
-type Props = $ReadOnly<{|
-  ...TextProps,
-  forwardedRef: ?React.Ref<'RCTText'>,
-|}>;
+type Props = TextProps & {
+  forwardedRef: React.Ref<IText>;
+};
 
-type State = {|
-  touchable: {|
-    touchState: ?string,
-    responderID: ?number,
-  |},
-  isHighlighted: boolean,
-  createResponderHandlers: () => ResponseHandlers,
-  responseHandlers: ?ResponseHandlers,
-|};
+type State = {
+  touchable: {
+    touchState?: string;
+    responderID?: number;
+  };
+  isHighlighted: boolean;
+  createResponderHandlers: () => ResponseHandlers;
+  responseHandlers?: ResponseHandlers;
+};
 
 const PRESS_RECT_OFFSET = { top: 20, left: 20, right: 20, bottom: 30 };
 
@@ -91,16 +99,16 @@ class TouchableText extends React.Component<Props, State> {
     ellipsizeMode: 'tail',
   };
 
-  touchableGetPressRectOffset: ?() => PressRetentionOffset;
-  touchableHandleActivePressIn: ?() => void;
-  touchableHandleActivePressOut: ?() => void;
-  touchableHandleLongPress: ?(event: PressEvent) => void;
-  touchableHandlePress: ?(event: PressEvent) => void;
-  touchableHandleResponderGrant: ?(event: PressEvent) => void;
-  touchableHandleResponderMove: ?(event: PressEvent) => void;
-  touchableHandleResponderRelease: ?(event: PressEvent) => void;
-  touchableHandleResponderTerminate: ?(event: PressEvent) => void;
-  touchableHandleResponderTerminationRequest: ?() => boolean;
+  touchableGetPressRectOffset?: () => PressRetentionOffset;
+  touchableHandleActivePressIn?: () => void;
+  touchableHandleActivePressOut?: () => void;
+  touchableHandleLongPress?: (event: GestureResponderEvent) => void;
+  touchableHandlePress?: (event: GestureResponderEvent) => void;
+  touchableHandleResponderGrant?: (event: GestureResponderEvent) => void;
+  touchableHandleResponderMove?: (event: GestureResponderEvent) => void;
+  touchableHandleResponderRelease?: (event: GestureResponderEvent) => void;
+  touchableHandleResponderTerminate?: (event: GestureResponderEvent) => void;
+  touchableHandleResponderTerminationRequest?: () => boolean;
 
   state = {
     ...Touchable.Mixin.touchableGetInitialState(),
@@ -112,7 +120,7 @@ class TouchableText extends React.Component<Props, State> {
   static getDerivedStateFromProps(
     nextProps: Props,
     prevState: State
-  ): $Shape<State> | null {
+  ): Partial<State> | null {
     return prevState.responseHandlers == null && isTouchable(nextProps)
       ? {
           responseHandlers: prevState.createResponderHandlers(),
@@ -122,7 +130,7 @@ class TouchableText extends React.Component<Props, State> {
 
   static viewConfig = viewConfig;
 
-  render(): React.Node {
+  render(): React.ReactNode {
     let props = this.props;
     if (isTouchable(props)) {
       props = {
@@ -162,25 +170,25 @@ class TouchableText extends React.Component<Props, State> {
         }
         return shouldSetResponder;
       },
-      onResponderGrant: (event: PressEvent): void => {
+      onResponderGrant: (event: GestureResponderEvent): void => {
         nullthrows(this.touchableHandleResponderGrant)(event);
         if (this.props.onResponderGrant != null) {
           this.props.onResponderGrant.call(this, event);
         }
       },
-      onResponderMove: (event: PressEvent): void => {
+      onResponderMove: (event: GestureResponderEvent): void => {
         nullthrows(this.touchableHandleResponderMove)(event);
         if (this.props.onResponderMove != null) {
           this.props.onResponderMove.call(this, event);
         }
       },
-      onResponderRelease: (event: PressEvent): void => {
+      onResponderRelease: (event: GestureResponderEvent): void => {
         nullthrows(this.touchableHandleResponderRelease)(event);
         if (this.props.onResponderRelease != null) {
           this.props.onResponderRelease.call(this, event);
         }
       },
-      onResponderTerminate: (event: PressEvent): void => {
+      onResponderTerminate: (event: GestureResponderEvent): void => {
         nullthrows(this.touchableHandleResponderTerminate)(event);
         if (this.props.onResponderTerminate != null) {
           this.props.onResponderTerminate.call(this, event);
@@ -208,7 +216,7 @@ class TouchableText extends React.Component<Props, State> {
     }
     for (const key in Touchable.Mixin) {
       if (typeof Touchable.Mixin[key] === 'function') {
-        (this: any)[key] = Touchable.Mixin[key].bind(this);
+        this[key] = Touchable.Mixin[key].bind(this);
       }
     }
     this.touchableHandleActivePressIn = (): void => {
@@ -221,12 +229,12 @@ class TouchableText extends React.Component<Props, State> {
         this.setState({ isHighlighted: false });
       }
     };
-    this.touchableHandlePress = (event: PressEvent): void => {
+    this.touchableHandlePress = (event: GestureResponderEvent): void => {
       if (this.props.onPress != null) {
         this.props.onPress(event);
       }
     };
-    this.touchableHandleLongPress = (event: PressEvent): void => {
+    this.touchableHandleLongPress = (event: GestureResponderEvent): void => {
       if (this.props.onLongPress != null) {
         this.props.onLongPress(event);
       }
@@ -241,6 +249,7 @@ class TouchableText extends React.Component<Props, State> {
 const isTouchable = (props: Props): boolean =>
   props.onPress != null ||
   props.onLongPress != null ||
+  // @ts-expect-error
   props.onStartShouldSetResponder != null;
 
 const RCTText = createReactNativeComponentClass(
@@ -248,7 +257,8 @@ const RCTText = createReactNativeComponentClass(
   () => viewConfig
 );
 
-const Text = (props: TextProps, forwardedRef: ?React.Ref<'RCTText'>) => {
+const Text = (props: TextProps, forwardedRef?: React.Ref<IText>) => {
+  // @ts-expect-error
   return <TouchableText {...props} forwardedRef={forwardedRef} />;
 };
 const TextToExport = React.forwardRef(Text);
@@ -260,12 +270,12 @@ TextToExport.displayName = 'Text';
  * and run Flow. */
 TextToExport.propTypes = DeprecatedTextPropTypes;
 
-type TextStatics = $ReadOnly<{|
-  propTypes: typeof DeprecatedTextPropTypes,
-|}>;
+type TextStatics = {
+  propTypes: typeof DeprecatedTextPropTypes;
+};
 
-module.exports = ((TextToExport: any): React.AbstractComponent<
+module.exports = TextToExport as React.Component<
   TextProps,
   React.ElementRef<HostComponent<TextProps>>
 > &
-  TextStatics);
+  TextStatics;
