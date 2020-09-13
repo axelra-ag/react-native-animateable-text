@@ -5,7 +5,7 @@ import { AnimatedInput } from 'react-native-reanimated-text';
 export default function App() {
   return (
     <View style={styles.container}>
-      <AnimatedInput></AnimatedInput>
+      <AnimatedInput actualText="hi"></AnimatedInput>
     </View>
   );
 }

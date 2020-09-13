@@ -33,7 +33,7 @@ static void RCTInlineViewYogaNodeDirtied(YGNodeRef node)
 - (instancetype)init
 {
   if (self = [super init]) {
-    _textAttributes = [RCTTextAttributes new];
+    _textAttributes = [JBTextAttributes new];
   }
 
   return self;
@@ -71,9 +71,9 @@ static void RCTInlineViewYogaNodeDirtied(YGNodeRef node)
 
 #pragma mark - attributedString
 
-- (NSAttributedString *)attributedTextWithBaseTextAttributes:(nullable RCTTextAttributes *)baseTextAttributes
+- (NSAttributedString *)attributedTextWithBaseTextAttributes:(nullable JBTextAttributes *)baseTextAttributes
 {
-  RCTTextAttributes *textAttributes;
+  JBTextAttributes *textAttributes;
 
   if (baseTextAttributes) {
     textAttributes = [baseTextAttributes copy];
@@ -89,20 +89,11 @@ static void RCTInlineViewYogaNodeDirtied(YGNodeRef node)
   NSMutableAttributedString *attributedText = [NSMutableAttributedString new];
 
   [attributedText beginEditing];
+  NSAttributedString *rawTextAttributedString =
+    [[NSAttributedString alloc] initWithString:[textAttributes applyTextAttributesToText:_textAttributes.actualText] attributes:textAttributes.effectiveTextAttributes];
+  [attributedText appendAttributedString:rawTextAttributedString];
 
   for (RCTShadowView *shadowView in self.reactSubviews) {
-    // Special Case: RCTRawTextShadowView
-    if ([shadowView isKindOfClass:[RCTRawTextShadowView class]]) {
-      RCTRawTextShadowView *rawTextShadowView = (RCTRawTextShadowView *)shadowView;
-      NSString *text = rawTextShadowView.text;
-      if (text) {
-        NSAttributedString *rawTextAttributedString =
-          [[NSAttributedString alloc] initWithString:[textAttributes applyTextAttributesToText:text]
-                                          attributes:textAttributes.effectiveTextAttributes];
-        [attributedText appendAttributedString:rawTextAttributedString];
-      }
-      continue;
-    }
 
     // Special Case: JBBaseTextShadowView
     if ([shadowView isKindOfClass:[JBBaseTextShadowView class]]) {

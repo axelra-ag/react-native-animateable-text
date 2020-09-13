@@ -11,8 +11,8 @@
 #import <React/RCTFont.h>
 #import <React/RCTLog.h>
 
-NSString *const RCTTextAttributesIsHighlightedAttributeName = @"RCTTextAttributesIsHighlightedAttributeName";
-NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttributeName";
+NSString *const JBTextAttributesIsHighlightedAttributeName = @"JBTextAttributesIsHighlightedAttributeName";
+NSString *const JBTextAttributesTagAttributeName = @"JBTextAttributesTagAttributeName";
 
 @implementation JBTextAttributes
 
@@ -77,6 +77,9 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
   _tag = textAttributes->_tag ?: _tag;
   _layoutDirection = textAttributes->_layoutDirection != UIUserInterfaceLayoutDirectionLeftToRight ? textAttributes->_layoutDirection : _layoutDirection;
   _textTransform = textAttributes->_textTransform != RCTTextTransformUndefined ? textAttributes->_textTransform : _textTransform;
+
+  // Text
+  _actualText = textAttributes->_actualText;
 }
 
 - (NSParagraphStyle *)effectiveParagraphStyle
@@ -180,11 +183,11 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
 
   // Special
   if (_isHighlighted) {
-    attributes[RCTTextAttributesIsHighlightedAttributeName] = @YES;
+    attributes[JBTextAttributesIsHighlightedAttributeName] = @YES;
   }
 
   if (_tag) {
-    attributes[RCTTextAttributesTagAttributeName] = _tag;
+    attributes[JBTextAttributesTagAttributeName] = _tag;
   }
 
   return [attributes copy];
@@ -306,7 +309,8 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
     RCTTextAttributesCompareOthers(_isHighlighted) &&
     RCTTextAttributesCompareObjects(_tag) &&
     RCTTextAttributesCompareOthers(_layoutDirection) &&
-    RCTTextAttributesCompareOthers(_textTransform);
+    RCTTextAttributesCompareOthers(_textTransform) &&
+    RCTTextAttributesCompareOthers(_actualText);
 }
 
 @end
