@@ -1,17 +1,17 @@
-# react-native-reanimated-text
+# react-native-animateable-text
 
 &lt;Text&gt; that supports animated value
 
 ## Installation
 
 ```sh
-npm install react-native-reanimated-text
+npm install react-native-animateable-text
 ```
 
 ## Usage
 
 ```js
-import ReanimatedText from "react-native-reanimated-text";
+import ReanimatedText from 'react-native-animateable-text';
 
 // ...
 

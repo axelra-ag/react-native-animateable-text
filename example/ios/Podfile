@@ -25,7 +25,7 @@ target 'ReanimatedTextExample' do
   config = use_native_modules!
   use_react_native!(:path => config["reactNativePath"])
 
-  pod 'react-native-reanimated-text', :path => '../..'
+  pod 'react-native-animateable-text', :path => '../..'
 
 
   # Enables Flipper.

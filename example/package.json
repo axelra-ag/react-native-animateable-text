@@ -1,6 +1,6 @@
 {
-  "name": "react-native-reanimated-text-example",
-  "description": "Example app for react-native-reanimated-text",
+  "name": "react-native-animateable-text-example",
+  "description": "Example app for react-native-animateable-text",
   "version": "0.0.1",
   "private": true,
   "scripts": {

@@ -1,5 +1,5 @@
 {
-  "name": "react-native-reanimated-text",
+  "name": "react-native-animateable-text",
   "version": "0.1.0",
   "description": "&lt;Text&gt; that supports animated value",
   "main": "lib/commonjs/index",
@@ -13,7 +13,7 @@
     "android",
     "ios",
     "cpp",
-    "react-native-reanimated-text.podspec",
+    "react-native-animateable-text.podspec",
     "!lib/typescript/example",
     "!**/__tests__",
     "!**/__fixtures__",
@@ -34,13 +34,13 @@
     "ios",
     "android"
   ],
-  "repository": "https://github.com/JonnyBurger/react-native-reanimated-text",
+  "repository": "https://github.com/JonnyBurger/react-native-animateable-text",
   "author": "Jonny Burger <jonathanburger11@gmail.com> (https://github.com/JonnyBurger)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/JonnyBurger/react-native-reanimated-text/issues"
+    "url": "https://github.com/JonnyBurger/react-native-animateable-text/issues"
   },
-  "homepage": "https://github.com/JonnyBurger/react-native-reanimated-text#readme",
+  "homepage": "https://github.com/JonnyBurger/react-native-animateable-text#readme",
   "devDependencies": {
     "@commitlint/config-conventional": "^8.3.4",
     "@react-native-community/bob": "^0.16.2",
@@ -119,7 +119,10 @@
       ]
     }
   },
-  "eslintIgnore": ["node_modules/", "lib/"],
+  "eslintIgnore": [
+    "node_modules/",
+    "lib/"
+  ],
   "prettier": {
     "quoteProps": "consistent",
     "singleQuote": true,
@@ -130,6 +133,10 @@
   "@react-native-community/bob": {
     "source": "src",
     "output": "lib",
-    "targets": ["commonjs", "module", "typescript"]
+    "targets": [
+      "commonjs",
+      "module",
+      "typescript"
+    ]
   }
 }
