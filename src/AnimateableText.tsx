@@ -93,7 +93,7 @@ const viewConfig = {
  *
  * See https://reactnative.dev/docs/text.html
  */
-class TouchableText extends React.ComponentClass<Props, State> {
+class TouchableText extends React.Component<Props, State> {
   static defaultProps = {
     accessible: true,
     allowFontScaling: true,

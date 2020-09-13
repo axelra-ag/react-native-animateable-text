@@ -89,9 +89,11 @@ static void RCTInlineViewYogaNodeDirtied(YGNodeRef node)
   NSMutableAttributedString *attributedText = [NSMutableAttributedString new];
 
   [attributedText beginEditing];
-  NSAttributedString *rawTextAttributedString =
-    [[NSAttributedString alloc] initWithString:[textAttributes applyTextAttributesToText:_textAttributes.text] attributes:textAttributes.effectiveTextAttributes];
-  [attributedText appendAttributedString:rawTextAttributedString];
+  if (_textAttributes.text) {
+    NSAttributedString *rawTextAttributedString =
+      [[NSAttributedString alloc] initWithString:[textAttributes applyTextAttributesToText:_textAttributes.text] attributes:textAttributes.effectiveTextAttributes];
+    [attributedText appendAttributedString:rawTextAttributedString];
+  }
 
   for (RCTShadowView *shadowView in self.reactSubviews) {
 
