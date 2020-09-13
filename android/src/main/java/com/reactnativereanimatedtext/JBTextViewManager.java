@@ -37,7 +37,7 @@ import java.util.Map;
  */
 @ReactModule(name = ReactTextViewManager.REACT_CLASS)
 public class JBTextViewManager
-  extends ReactTextAnchorViewManager<ReactTextView, ReactTextShadowNode>
+  extends ReactTextAnchorViewManager<ReactTextView, JBTextShadowNode>
   implements IViewManagerWithChildren {
 
   @VisibleForTesting public static final String REACT_CLASS = "JBAnimatedText";
@@ -65,18 +65,18 @@ public class JBTextViewManager
   }
 
   @Override
-  public ReactTextShadowNode createShadowNodeInstance() {
-    return new ReactTextShadowNode();
+  public JBTextShadowNode createShadowNodeInstance() {
+    return new JBTextShadowNode();
   }
 
-  public ReactTextShadowNode createShadowNodeInstance(
+  public JBTextShadowNode createShadowNodeInstance(
     @Nullable ReactTextViewManagerCallback reactTextViewManagerCallback) {
-    return new ReactTextShadowNode(reactTextViewManagerCallback);
+    return new JBTextShadowNode(reactTextViewManagerCallback);
   }
 
   @Override
-  public Class<ReactTextShadowNode> getShadowNodeClass() {
-    return ReactTextShadowNode.class;
+  public Class<JBTextShadowNode> getShadowNodeClass() {
+    return JBTextShadowNode.class;
   }
 
   @Override
