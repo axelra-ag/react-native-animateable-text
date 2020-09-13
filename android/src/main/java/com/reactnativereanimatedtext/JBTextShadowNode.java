@@ -34,7 +34,6 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.facebook.react.views.text.FontMetricsUtil;
 import com.facebook.react.views.text.ReactAbsoluteSizeSpan;
-import com.facebook.react.views.text.ReactBaseTextShadowNode;
 import com.facebook.react.views.text.ReactTextUpdate;
 import com.facebook.react.views.text.ReactTextViewManagerCallback;
 import com.facebook.react.views.text.TextInlineViewPlaceholderSpan;
@@ -47,13 +46,12 @@ import com.facebook.yoga.YogaNode;
 import java.util.ArrayList;
 
 /**
- * {@link ReactBaseTextShadowNode} concrete class for anchor {@code Text} node.
  *
  * <p>The class measures text in {@code <Text>} view and feeds native {@link TextView} using {@code
  * Spannable} object constructed in superclass.
  */
 @TargetApi(Build.VERSION_CODES.M)
-public class JBTextShadowNode extends ReactBaseTextShadowNode {
+public class JBTextShadowNode extends JBBaseTextShadowNode {
 
   // It's important to pass the ANTI_ALIAS_FLAG flag to the constructor rather than setting it
   // later by calling setFlags. This is because the latter approach triggers a bug on Android 4.4.2.

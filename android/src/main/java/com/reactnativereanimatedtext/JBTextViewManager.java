@@ -37,7 +37,7 @@ import java.util.Map;
  */
 @ReactModule(name = ReactTextViewManager.REACT_CLASS)
 public class JBTextViewManager
-  extends ReactTextAnchorViewManager<ReactTextView, JBTextShadowNode>
+  extends JBTextAnchorViewManager<ReactTextView, JBTextShadowNode>
   implements IViewManagerWithChildren {
 
   @VisibleForTesting public static final String REACT_CLASS = "JBAnimatedText";
