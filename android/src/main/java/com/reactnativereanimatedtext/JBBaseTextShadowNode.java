@@ -126,65 +126,11 @@ public abstract class JBBaseTextShadowNode extends LayoutShadowNode {
       textAttributes = textShadowNode.mTextAttributes;
     }
 
-    for (int i = 0, length = textShadowNode.getChildCount(); i < length; i++) {
-      ReactShadowNode child = textShadowNode.getChildAt(i);
-
-      if (child instanceof ReactRawTextShadowNode) {
-        sb.append(
-          TextTransform.apply(
-            ((ReactRawTextShadowNode) child).getText(), textAttributes.getTextTransform()));
-      } else if (child instanceof JBBaseTextShadowNode) {
-        buildSpannedFromShadowNode(
-          (JBBaseTextShadowNode) child,
-          sb,
-          ops,
-          textAttributes,
-          supportsInlineViews,
-          inlineViews,
-          sb.length());
-      } else if (child instanceof ReactTextInlineImageShadowNode) {
-        // We make the image take up 1 character in the span and put a corresponding character into
-        // the text so that the image doesn't run over any following text.
-        sb.append(INLINE_VIEW_PLACEHOLDER);
-        ops.add(
-          new SetSpanOperation(
-            sb.length() - INLINE_VIEW_PLACEHOLDER.length(),
-            sb.length(),
-            ((ReactTextInlineImageShadowNode) child).buildInlineImageSpan()));
-      } else if (supportsInlineViews) {
-        int reactTag = child.getReactTag();
-        YogaValue widthValue = child.getStyleWidth();
-        YogaValue heightValue = child.getStyleHeight();
-
-        float width;
-        float height;
-        if (widthValue.unit != YogaUnit.POINT || heightValue.unit != YogaUnit.POINT) {
-          // If the measurement of the child isn't calculated, we calculate the layout for the
-          // view using Yoga
-          child.calculateLayout();
-          width = child.getLayoutWidth();
-          height = child.getLayoutHeight();
-        } else {
-          width = widthValue.value;
-          height = heightValue.value;
-        }
-
-        // We make the inline view take up 1 character in the span and put a corresponding character
-        // into
-        // the text so that the inline view doesn't run over any following text.
-        sb.append(INLINE_VIEW_PLACEHOLDER);
-        ops.add(
-          new SetSpanOperation(
-            sb.length() - INLINE_VIEW_PLACEHOLDER.length(),
-            sb.length(),
-            new TextInlineViewPlaceholderSpan(reactTag, (int) width, (int) height)));
-        inlineViews.put(reactTag, child);
-      } else {
-        throw new IllegalViewOperationException(
-          "Unexpected view type nested under a <Text> or <TextInput> node: " + child.getClass());
-      }
-      child.markUpdateSeen();
+    if (textShadowNode.mText != null) {
+      sb.append(
+        TextTransform.apply(textShadowNode.mText, textAttributes.getTextTransform()));
     }
+
     int end = sb.length();
     if (end >= start) {
       if (textShadowNode.mIsColorSet) {
@@ -360,6 +306,7 @@ public abstract class JBBaseTextShadowNode extends LayoutShadowNode {
   protected boolean mIncludeFontPadding = true;
   protected boolean mAdjustsFontSizeToFit = false;
   protected float mMinimumFontScale = 0;
+  protected String mText = "";
 
   /**
    * mFontStyle can be {@link Typeface#NORMAL} or {@link Typeface#ITALIC}. mFontWeight can be {@link
@@ -655,5 +602,11 @@ public abstract class JBBaseTextShadowNode extends LayoutShadowNode {
       mMinimumFontScale = minimumFontScale;
       markUpdated();
     }
+  }
+
+  @ReactProp(name = "text")
+  public void setText(String newText) {
+    mText = newText;
+    markUpdated();
   }
 }
