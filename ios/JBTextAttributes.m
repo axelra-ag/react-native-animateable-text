@@ -79,7 +79,7 @@ NSString *const JBTextAttributesTagAttributeName = @"JBTextAttributesTagAttribut
   _textTransform = textAttributes->_textTransform != RCTTextTransformUndefined ? textAttributes->_textTransform : _textTransform;
 
   // Text
-  _actualText = textAttributes->_actualText;
+  _text = textAttributes->_text;
 }
 
 - (NSParagraphStyle *)effectiveParagraphStyle
@@ -310,7 +310,7 @@ NSString *const JBTextAttributesTagAttributeName = @"JBTextAttributesTagAttribut
     RCTTextAttributesCompareObjects(_tag) &&
     RCTTextAttributesCompareOthers(_layoutDirection) &&
     RCTTextAttributesCompareOthers(_textTransform) &&
-    RCTTextAttributesCompareOthers(_actualText);
+    RCTTextAttributesCompareOthers(_text);
 }
 
 @end

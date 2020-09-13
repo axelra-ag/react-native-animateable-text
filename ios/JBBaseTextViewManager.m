@@ -55,5 +55,5 @@ RCT_REMAP_SHADOW_PROPERTY(isHighlighted, textAttributes.isHighlighted, BOOL)
 RCT_REMAP_SHADOW_PROPERTY(textTransform, textAttributes.textTransform, RCTTextTransform)
 
 // Text
-RCT_REMAP_SHADOW_PROPERTY(actualText, textAttributes.actualText, NSString)
+RCT_REMAP_SHADOW_PROPERTY(text, textAttributes.text, NSString)
 @end
