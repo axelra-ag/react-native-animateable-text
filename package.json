@@ -1,6 +1,6 @@
 {
   "name": "react-native-animateable-text",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "&lt;Text&gt; that supports animated value",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
