@@ -5,10 +5,6 @@ import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, { concat, multiply, round } from 'react-native-reanimated';
 import { ReText, usePanGestureHandler } from 'react-native-redash';
 
-const AnimatedText = Animated.createAnimatedComponent(
-  AnimateableText
-) as typeof AnimateableText;
-
 const style = {
   fontSize: 30,
   fontWeight: 'bold' as const,
@@ -65,7 +61,7 @@ export default function App() {
           AnimateableText:{' '}
         </Text>
         <View style={styles.flex1} />
-        <AnimatedText selectable text={str} style={style} />
+        <AnimateableText selectable text={str} style={style} />
       </View>
       <View style={styles.spacer} />
       <PanGestureHandler {...panGestureHandler.gestureHandler}>
