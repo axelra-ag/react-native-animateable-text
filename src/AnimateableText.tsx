@@ -18,11 +18,11 @@ const createReactNativeComponentClass = require('react-native/Libraries/Renderer
 const nullthrows = require('nullthrows');
 const processColor = require('react-native/Libraries/StyleSheet/processColor');
 import type {
-  TextProps,
   Text as IText,
   GestureResponderEvent,
   HostComponent,
 } from 'react-native';
+import type { AnimateableTextProps } from './TextProps';
 
 type PressRetentionOffset = {
   top: number;
@@ -38,11 +38,6 @@ type ResponseHandlers = {
   onResponderRelease: (event: GestureResponderEvent) => void;
   onResponderTerminate: (event: GestureResponderEvent) => void;
   onResponderTerminationRequest: () => boolean;
-};
-
-type Props = TextProps & {
-  forwardedRef?: React.Ref<IText>;
-  text: string;
 };
 
 type State = {
@@ -93,7 +88,7 @@ const viewConfig = {
  *
  * See https://reactnative.dev/docs/text.html
  */
-class TouchableText extends React.Component<Props, State> {
+class TouchableText extends React.Component<AnimateableTextProps, State> {
   static defaultProps = {
     accessible: true,
     allowFontScaling: true,
@@ -119,7 +114,7 @@ class TouchableText extends React.Component<Props, State> {
   };
 
   static getDerivedStateFromProps(
-    nextProps: Props,
+    nextProps: AnimateableTextProps,
     prevState: State
   ): Partial<State> | null {
     return prevState.responseHandlers == null && isTouchable(nextProps)
@@ -247,7 +242,7 @@ class TouchableText extends React.Component<Props, State> {
   }
 }
 
-const isTouchable = (props: Props): boolean =>
+const isTouchable = (props: AnimateableTextProps): boolean =>
   props.onPress != null ||
   props.onLongPress != null ||
   // @ts-expect-error
@@ -258,12 +253,12 @@ const RCTText = createReactNativeComponentClass(
   () => viewConfig
 );
 
-const Text = (props: Props, forwardedRef?: React.Ref<IText>) => {
+const Text = (props: AnimateableTextProps, forwardedRef?: React.Ref<IText>) => {
   // @ts-expect-error
   return <TouchableText {...props} forwardedRef={forwardedRef} />;
 };
 const TextToExport = React.forwardRef(Text);
-TextToExport.displayName = 'Text';
+TextToExport.displayName = 'Animateable';
 
 // TODO: Deprecate this.
 /* $FlowFixMe(>=0.89.0 site=react_native_fb) This comment suppresses an error
@@ -276,7 +271,7 @@ type TextStatics = {
 };
 
 export const AnimateableText = TextToExport as React.ComponentClass<
-  Props,
-  React.ElementRef<HostComponent<TextProps>>
+  AnimateableTextProps,
+  React.ElementRef<HostComponent<AnimateableTextProps>>
 > &
   TextStatics;
