@@ -22,7 +22,6 @@ import com.facebook.react.uimanager.ViewProps;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.annotations.ReactPropGroup;
 import com.facebook.react.views.text.DefaultStyleValuesUtil;
-import com.facebook.react.views.text.ReactTextView;
 import com.facebook.yoga.YogaConstants;
 
 /**
@@ -37,12 +36,12 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
 
   // maxLines can only be set in master view (block), doesn't really make sense to set in a span
   @ReactProp(name = ViewProps.NUMBER_OF_LINES, defaultInt = ViewDefaults.NUMBER_OF_LINES)
-  public void setNumberOfLines(ReactTextView view, int numberOfLines) {
+  public void setNumberOfLines(JBReactTextView view, int numberOfLines) {
     view.setNumberOfLines(numberOfLines);
   }
 
   @ReactProp(name = ViewProps.ELLIPSIZE_MODE)
-  public void setEllipsizeMode(ReactTextView view, @Nullable String ellipsizeMode) {
+  public void setEllipsizeMode(JBReactTextView view, @Nullable String ellipsizeMode) {
     if (ellipsizeMode == null || ellipsizeMode.equals("tail")) {
       view.setEllipsizeLocation(TextUtils.TruncateAt.END);
     } else if (ellipsizeMode.equals("head")) {
@@ -57,14 +56,14 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
   }
 
   @ReactProp(name = ViewProps.ADJUSTS_FONT_SIZE_TO_FIT)
-  public void setAdjustFontSizeToFit(ReactTextView view, boolean adjustsFontSizeToFit) {
+  public void setAdjustFontSizeToFit(JBReactTextView view, boolean adjustsFontSizeToFit) {
     view.setAdjustFontSizeToFit(adjustsFontSizeToFit);
   }
 
   @ReactProp(name = ViewProps.TEXT_ALIGN_VERTICAL)
-  public void setTextAlignVertical(ReactTextView view, @Nullable String textAlignVertical) {
+  public void setTextAlignVertical(JBReactTextView view, @Nullable String textAlignVertical) {
     // TODO: Can we call this
-    /*
+
     if (textAlignVertical == null || "auto".equals(textAlignVertical)) {
       view.setGravityVertical(Gravity.NO_GRAVITY);
     } else if ("top".equals(textAlignVertical)) {
@@ -77,17 +76,17 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
       throw new JSApplicationIllegalArgumentException(
         "Invalid textAlignVertical: " + textAlignVertical);
     }
-    */
+
 
   }
 
   @ReactProp(name = "selectable")
-  public void setSelectable(ReactTextView view, boolean isSelectable) {
+  public void setSelectable(JBReactTextView view, boolean isSelectable) {
     view.setTextIsSelectable(isSelectable);
   }
 
   @ReactProp(name = "selectionColor", customType = "Color")
-  public void setSelectionColor(ReactTextView view, @Nullable Integer color) {
+  public void setSelectionColor(JBReactTextView view, @Nullable Integer color) {
     if (color == null) {
       view.setHighlightColor(
         DefaultStyleValuesUtil.getDefaultTextColorHighlight(view.getContext()));
@@ -105,7 +104,7 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
       ViewProps.BORDER_BOTTOM_LEFT_RADIUS
     },
     defaultFloat = YogaConstants.UNDEFINED)
-  public void setBorderRadius(ReactTextView view, int index, float borderRadius) {
+  public void setBorderRadius(JBReactTextView view, int index, float borderRadius) {
     if (!YogaConstants.isUndefined(borderRadius)) {
       borderRadius = PixelUtil.toPixelFromDIP(borderRadius);
     }
@@ -118,7 +117,7 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
   }
 
   @ReactProp(name = "borderStyle")
-  public void setBorderStyle(ReactTextView view, @Nullable String borderStyle) {
+  public void setBorderStyle(JBReactTextView view, @Nullable String borderStyle) {
     view.setBorderStyle(borderStyle);
   }
 
@@ -131,7 +130,7 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
       ViewProps.BORDER_BOTTOM_WIDTH,
     },
     defaultFloat = YogaConstants.UNDEFINED)
-  public void setBorderWidth(ReactTextView view, int index, float width) {
+  public void setBorderWidth(JBReactTextView view, int index, float width) {
     if (!YogaConstants.isUndefined(width)) {
       width = PixelUtil.toPixelFromDIP(width);
     }
@@ -147,7 +146,7 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
       "borderBottomColor"
     },
     customType = "Color")
-  public void setBorderColor(ReactTextView view, int index, Integer color) {
+  public void setBorderColor(JBReactTextView view, int index, Integer color) {
     float rgbComponent =
       color == null ? YogaConstants.UNDEFINED : (float) ((int) color & 0x00FFFFFF);
     float alphaComponent = color == null ? YogaConstants.UNDEFINED : (float) ((int) color >>> 24);
@@ -155,17 +154,17 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
   }
 
   @ReactProp(name = ViewProps.INCLUDE_FONT_PADDING, defaultBoolean = true)
-  public void setIncludeFontPadding(ReactTextView view, boolean includepad) {
+  public void setIncludeFontPadding(JBReactTextView view, boolean includepad) {
     view.setIncludeFontPadding(includepad);
   }
 
   @ReactProp(name = "disabled", defaultBoolean = false)
-  public void setDisabled(ReactTextView view, boolean disabled) {
+  public void setDisabled(JBReactTextView view, boolean disabled) {
     view.setEnabled(!disabled);
   }
 
   @ReactProp(name = "dataDetectorType")
-  public void setDataDetectorType(ReactTextView view, @Nullable String type) {
+  public void setDataDetectorType(JBReactTextView view, @Nullable String type) {
     switch (type) {
       case "phoneNumber":
         view.setLinkifyMask(Linkify.PHONE_NUMBERS);
@@ -187,7 +186,7 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
   }
 
   @ReactProp(name = "onInlineViewLayout")
-  public void setNotifyOnInlineViewLayout(ReactTextView view, boolean notifyOnInlineViewLayout) {
+  public void setNotifyOnInlineViewLayout(JBReactTextView view, boolean notifyOnInlineViewLayout) {
     view.setNotifyOnInlineViewLayout(notifyOnInlineViewLayout);
   }
 }
