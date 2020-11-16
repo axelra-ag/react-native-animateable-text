@@ -1,7 +1,7 @@
 {
   "name": "react-native-animateable-text",
-  "version": "0.5.0",
-  "description": "&lt;Text&gt; that supports animated value",
+  "version": "0.5.1",
+  "description": "A fork of React Native's <Text/> component that supports Animated Values!",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
@@ -32,10 +32,13 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "reanimated",
+    "animated",
+    "text"
   ],
   "repository": "https://github.com/JonnyBurger/react-native-animateable-text",
-  "author": "Jonny Burger <jonathanburger11@gmail.com> (https://github.com/JonnyBurger)",
+  "author": "Jonny Burger <jonny.burger@axelra.com> (https://github.com/JonnyBurger)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/JonnyBurger/react-native-animateable-text/issues"
