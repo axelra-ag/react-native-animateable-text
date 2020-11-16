@@ -2,6 +2,8 @@
 
 &lt;Text&gt; that supports animated value
 
+<img src="https://user-images.githubusercontent.com/1629785/99287990-458d4600-283b-11eb-8d5e-0c1129189c89.gif">
+
 ## Installation
 
 ```sh
