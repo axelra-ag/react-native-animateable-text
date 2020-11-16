@@ -84,13 +84,13 @@ See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the 
 
 ## Credits
 
-Coded by [Jonny Burger](https://jonny.io) for our needs at [Axelra](https://axelra.com).
+Written by [Jonny Burger](https://jonny.io) for our needs at [Axelra](https://axelra.com).
 
-Thanks to Axelra for sponsoring my time to turn this into an open source project.
+Thanks to Axelra for sponsoring my time to turn this into an open source project!
 
 <br/>
-<img src="https://user-images.githubusercontent.com/1629785/99300604-1ed80b00-284d-11eb-9887-9fb0832ef8de.png" width="150"> <br><br>
-We are a Swiss Agency specializing in React Native, caring even about the smallest of details.
+<img src="https://user-images.githubusercontent.com/1629785/99300604-1ed80b00-284d-11eb-9887-9fb0832ef8de.png" width="150"> <br>
+<sub>We are a Swiss Agency specializing in React Native, caring even about the smallest of details.</sub>
 
 ## License
 
