@@ -25,6 +25,9 @@ import com.facebook.react.views.text.DefaultStyleValuesUtil;
 import com.facebook.react.views.text.ReactTextView;
 import com.facebook.yoga.YogaConstants;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 /**
 
  */
@@ -64,20 +67,38 @@ public abstract class JBTextAnchorViewManager<T extends View, C extends JBBaseTe
   @ReactProp(name = ViewProps.TEXT_ALIGN_VERTICAL)
   public void setTextAlignVertical(ReactTextView view, @Nullable String textAlignVertical) {
     // TODO: Can we call this
-    /*
+  try {
+
     if (textAlignVertical == null || "auto".equals(textAlignVertical)) {
-      view.setGravityVertical(Gravity.NO_GRAVITY);
+      Method method = view.getClass().getDeclaredMethod("setGravityVertical");
+      method.setAccessible(true);
+      method.invoke(view, Gravity.NO_GRAVITY);
     } else if ("top".equals(textAlignVertical)) {
-      view.setGravityVertical(Gravity.TOP);
+      Method method = view.getClass().getDeclaredMethod("setGravityVertical");
+      method.setAccessible(true);
+      method.invoke(view, Gravity.TOP);
     } else if ("bottom".equals(textAlignVertical)) {
-      view.setGravityVertical(Gravity.BOTTOM);
+      Method method = view.getClass().getDeclaredMethod("setGravityVertical");
+      method.setAccessible(true);
+      method.invoke(view, Gravity.BOTTOM);
     } else if ("center".equals(textAlignVertical)) {
-      view.setGravityVertical(Gravity.CENTER_VERTICAL);
+      Method method = view.getClass().getDeclaredMethod("setGravityVertical");
+      method.setAccessible(true);
+      method.invoke(view, Gravity.CENTER_VERTICAL);
     } else {
       throw new JSApplicationIllegalArgumentException(
         "Invalid textAlignVertical: " + textAlignVertical);
     }
-    */
+
+  } catch (NoSuchMethodException e) {
+    System.out.println("no such method");
+  } catch (IllegalAccessException e) {
+    System.out.println("illegal access");
+  }
+  catch (InvocationTargetException e) {
+    System.out.println("invocation target exception");
+  }
+
 
   }
 
