@@ -1,0 +1,11 @@
+on: push
+name: Install and Test
+jobs:
+  build:
+    name: Build
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@main
+      - uses: actions/setup-node@main
+      - run: yarn
+      - run: yarn test
