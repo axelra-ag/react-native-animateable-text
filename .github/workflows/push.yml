@@ -7,6 +7,6 @@ jobs:
     steps:
       - uses: actions/checkout@main
       - uses: actions/setup-node@main
-      - run: yarn
       - run: npx npm-install-peers
+      - run: yarn
       - run: yarn test
