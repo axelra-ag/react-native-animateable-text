@@ -9,5 +9,6 @@ jobs:
       - uses: actions/setup-node@main
       - run: yarn --ignore-scripts
       - run: npx npm-install-peers
+      - run: cd example && yarn
       - run: yarn prepare
       - run: yarn test
