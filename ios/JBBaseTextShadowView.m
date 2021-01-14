@@ -89,7 +89,7 @@ static void RCTInlineViewYogaNodeDirtied(YGNodeRef node)
   NSMutableAttributedString *attributedText = [NSMutableAttributedString new];
 
   [attributedText beginEditing];
-  if (_textAttributes.text) {
+  if (_textAttributes.text && _textAttributes.text.length > 0) {
     NSAttributedString *rawTextAttributedString =
       [[NSAttributedString alloc] initWithString:[textAttributes applyTextAttributesToText:_textAttributes.text] attributes:textAttributes.effectiveTextAttributes];
     [attributedText appendAttributedString:rawTextAttributedString];
