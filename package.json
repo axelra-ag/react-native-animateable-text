@@ -37,13 +37,13 @@
     "animated",
     "text"
   ],
-  "repository": "https://github.com/JonnyBurger/react-native-animateable-text",
+  "repository": "https://github.com/axelra-ag/react-native-animateable-text",
   "author": "Jonny Burger <jonny.burger@axelra.com> (https://github.com/JonnyBurger)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/JonnyBurger/react-native-animateable-text/issues"
+    "url": "https://github.com/axelra-ag/react-native-animateable-text/issues"
   },
-  "homepage": "https://github.com/JonnyBurger/react-native-animateable-text#readme",
+  "homepage": "https://github.com/axelra-ag/react-native-animateable-text#readme",
   "devDependencies": {
     "@commitlint/config-conventional": "^8.3.4",
     "@react-native-community/bob": "^0.16.2",
