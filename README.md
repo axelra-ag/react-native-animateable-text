@@ -11,6 +11,8 @@ npx pod-install
 
 ## Usage (Reanimated 2)
 
+> Note about Reanimated 2: The library does not work with Alpha 9 until RC1. Make sure to update to RC2 or later!
+
 Use it the same as a `<Text/>` component, except instead of passing the text as a child node, pass it using the `text` props.
 
 ```tsx
