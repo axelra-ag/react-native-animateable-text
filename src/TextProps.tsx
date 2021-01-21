@@ -3,11 +3,8 @@ import type Animated from 'react-native-reanimated';
 
 export type AnimateableTextProps = Omit<NativeTextProps, 'children'> & {
   forwardedRef?: React.Ref<IText>;
-} & (
-    | {
-        animatedProps: any;
-      }
-    | {
-        text: string | Animated.Node<string>;
-      }
-  );
+  animatedProps?: Partial<
+    Omit<NativeTextProps, 'children'> & { text?: string }
+  >;
+  text?: string | Animated.Node<string>;
+};
