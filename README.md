@@ -2,6 +2,23 @@
 
 A fork of React Native's `<Text/>` component that supports Animated Values as text!
 
+## Compatibility
+
+<table>
+  <tr>
+    <th>Animateable Text Version</th>
+    <th>RN Version</th>
+  </tr>
+  <tr>
+    <td> >= 0.6.0 </td>
+    <td> >= 0.64</td>
+  </tr>
+  <tr>
+    <td> >= 0.5.9</td>
+    <td> >= 0.63</td>
+  </tr>
+</table>
+
 ## Installation
 
 ```sh

@@ -109,7 +109,7 @@ public class JBTextViewManager
       spanned,
       state.hasKey("mostRecentEventCount") ? state.getInt("mostRecentEventCount") : -1,
       false, // TODO add this into local Data
-      TextAttributeProps.getTextAlignment(props),
+      TextAttributeProps.getTextAlignment(props, TextLayoutManager.isRTL(attributedString)),
       textBreakStrategy,
       TextAttributeProps.getJustificationMode(props));
   }
@@ -131,7 +131,7 @@ public class JBTextViewManager
     YogaMeasureMode widthMode,
     float height,
     YogaMeasureMode heightMode,
-    @Nullable int[] attachmentsPositions) {
+    @Nullable float[] attachmentsPositions) {
 
     return TextLayoutManager.measureText(
       context,
