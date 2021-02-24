@@ -1,4 +1,6 @@
 buildscript {
+  // Buildscript is evaluated before everything else so we can't use getExtOrDefault
+  def kotlin_version = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : project.properties['ReanimatedText_kotlinVersion']
 
   repositories {
     google()
@@ -7,10 +9,13 @@ buildscript {
 
   dependencies {
     classpath 'com.android.tools.build:gradle:3.2.1'
+    // noinspection DifferentKotlinGradleVersion
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
   }
 }
 
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 def getExtOrDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['ReanimatedText_' + name]
@@ -28,9 +33,9 @@ android {
     targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')
     versionCode 1
     versionName "1.0"
-
+    
   }
-
+  
   buildTypes {
     release {
       minifyEnabled false
@@ -116,8 +121,10 @@ repositories {
   }
 }
 
+def kotlin_version = getExtOrDefault('kotlinVersion')
 
 dependencies {
   // noinspection GradleDynamicVersion
   api 'com.facebook.react:react-native:+'
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }
