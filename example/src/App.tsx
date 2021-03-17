@@ -66,6 +66,8 @@ export default function App() {
       <View style={styles.spacer} />
       <PanGestureHandler {...panGestureHandler.gestureHandler}>
         <Animated.View style={styles.outerBar}>
+          {/**
+           // ts-ignore */}
           <Animated.View style={bar} />
         </Animated.View>
       </PanGestureHandler>
