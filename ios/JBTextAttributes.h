@@ -54,7 +54,7 @@ extern NSString *const JBTextAttributesTagAttributeName;
 @property (nonatomic, strong, nullable) NSNumber *tag;
 @property (nonatomic, assign) UIUserInterfaceLayoutDirection layoutDirection;
 @property (nonatomic, assign) RCTTextTransform textTransform;
-@property (nonatomic, assign) NSString *text;
+@property (nonatomic, copy, nullable) NSString *text;
 
 #pragma mark - Inheritance
 
