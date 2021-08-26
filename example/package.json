@@ -9,8 +9,8 @@
     "start": "react-native start"
   },
   "dependencies": {
-    "react": "16.11.0",
-    "react-native": "0.64.0-rc.3",
+    "react": "17.0.2",
+    "react-native": "0.65.1",
     "react-native-gesture-handler": "^1.8.0",
     "react-native-reanimated": "^1.13.0",
     "react-native-redash": "14.2.1"
@@ -19,6 +19,6 @@
     "@babel/core": "^7.9.6",
     "@babel/runtime": "^7.9.6",
     "babel-plugin-module-resolver": "^4.0.0",
-    "metro-react-native-babel-preset": "^0.59.0"
+    "metro-react-native-babel-preset": "^0.66.0"
   }
 }
