@@ -7,6 +7,7 @@
 
 package com.reactnativereanimatedtext;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.os.Build;
 import android.text.BoringLayout;
@@ -150,6 +151,7 @@ public class JBTextShadowNode extends JBBaseTextShadowNode {
     }
   }
 
+  @SuppressLint("WrongConstant")
   private Layout measureSpannedText(Spannable text, float width, YogaMeasureMode widthMode) {
     // TODO(5578671): Handle text direction (see View#getTextDirectionHeuristic)
     TextPaint textPaint = sTextPaintInstance;
@@ -185,7 +187,7 @@ public class JBTextShadowNode extends JBBaseTextShadowNode {
         layout =
           new StaticLayout(text, textPaint, hintWidth, alignment, 1.f, 0.f, mIncludeFontPadding);
       } else {
-        StaticLayout.Builder builder =
+        @SuppressLint("WrongConstant") StaticLayout.Builder builder =
           StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, hintWidth)
             .setAlignment(alignment)
             .setLineSpacing(0.f, 1.f)

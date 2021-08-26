@@ -93,7 +93,7 @@ public class JBTextViewManager
   public Object updateState(
     ReactTextView view, ReactStylesDiffMap props, @Nullable StateWrapper stateWrapper) {
     // TODO T55794595: Add support for updating state with null stateWrapper
-    ReadableNativeMap state = stateWrapper.getState();
+    ReadableNativeMap state = stateWrapper.getStateData();
     ReadableMap attributedString = state.getMap("attributedString");
     ReadableMap paragraphAttributes = state.getMap("paragraphAttributes");
 
