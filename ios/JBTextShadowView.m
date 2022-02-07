@@ -12,7 +12,7 @@
 #import <React/RCTUIManager.h>
 #import <yoga/Yoga.h>
 
-#import "NSTextStorage+FontScaling.h"
+#import <React/NSTextStorage+FontScaling.h>
 #import <React/RCTTextView.h>
 
 @implementation JBTextShadowView
