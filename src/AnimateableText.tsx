@@ -9,7 +9,7 @@
  */
 
 'use strict';
-const DeprecatedTextPropTypes = require('react-native/Libraries/DeprecatedPropTypes/DeprecatedTextPropTypes');
+const DeprecatedTextPropTypes = require('deprecated-react-native-prop-types/DeprecatedTextPropTypes');
 const React = require('react');
 const ReactNativeViewAttributes = require('react-native/Libraries/Components/View/ReactNativeViewAttributes');
 const Touchable = require('react-native/Libraries/Components/Touchable/Touchable');
