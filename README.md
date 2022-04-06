@@ -10,6 +10,14 @@ A fork of React Native's `<Text/>` component that supports Animated Values as te
     <th>RN Version</th>
   </tr>
   <tr>
+    <td> ^0.10.0</td>
+    <td> ^0.68</td>
+  </tr>
+  <tr>
+    <td> ^0.9.1</td>
+    <td> ^0.67</td>
+  </tr>
+  <tr>
     <td> ^0.8.0</td>
     <td> ^0.66</td>
   </tr>
