@@ -62,8 +62,8 @@
     "prettier": "^2.0.5",
     "react": "16.11.0",
     "react-native": ">=0.64.0-rc.3",
-    "react-native-reanimated": "^2.6.0",
     "react-native-gesture-handler": "^2.3.2",
+    "react-native-reanimated": "^2.6.0",
     "react-native-redash": "^16.2.3",
     "release-it": "^13.5.8",
     "typescript": "^3.8.3"
@@ -147,6 +147,7 @@
     ]
   },
   "dependencies": {
+    "deprecated-react-native-prop-types": "^2.3.0",
     "nullthrows": "^1.1.1"
   }
 }
