@@ -11,11 +11,10 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => "9.0" }
-  s.source       = { :git => "https://github.com/JonnyBurger/react-native-animateable-text.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/axelra-ag/react-native-animateable-text.git", :tag => "#{s.version}" }
 
 
-  s.source_files = "ios/**/*.{h,m,mm}"
-
+  s.source_files = "ios/**/*.{h,m}"
 
   s.dependency "React-Core"
 end

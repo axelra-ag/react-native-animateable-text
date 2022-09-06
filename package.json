@@ -23,7 +23,9 @@
     "test": "jest",
     "typescript": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "prepare": "bob build",
+    "build": "bob build",
+    "build:plugin": "rimraf plugin/build && tsc --build plugin",
+    "prepare": "yarn build && yarn build:plugin",
     "release": "dotenv release-it --",
     "example": "yarn --cwd example",
     "pods": "cd example && pod-install --quiet",
@@ -46,6 +48,7 @@
   "homepage": "https://github.com/axelra-ag/react-native-animateable-text#readme",
   "devDependencies": {
     "@commitlint/config-conventional": "^8.3.4",
+    "@expo/config-plugins": "^5.0.0",
     "@react-native-community/bob": "^0.16.2",
     "@react-native-community/eslint-config": "^2.0.0",
     "@release-it/conventional-changelog": "^1.1.4",
@@ -66,6 +69,7 @@
     "react-native-reanimated": "^2.6.0",
     "react-native-redash": "^16.2.3",
     "release-it": "^13.5.8",
+    "rimraf": "^3.0.2",
     "typescript": "^3.8.3"
   },
   "peerDependencies": {
