@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import AnimateableText from 'react-native-animateable-text';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, { concat, multiply, round } from 'react-native-reanimated';
-// @ts-expect-error
 import { ReText, usePanGestureHandler } from 'react-native-redash';
 
 const style = {
@@ -55,8 +54,6 @@ export default function App() {
       <View style={styles.row}>
         <Text style={style}>ReText: </Text>
         <View style={styles.flex1} />
-        {/**
-         // @ts-expect-error */}
         <ReText text={str} style={style} />
       </View>
       <View style={styles.row}>
@@ -70,7 +67,7 @@ export default function App() {
       <PanGestureHandler {...panGestureHandler.gestureHandler}>
         <Animated.View style={styles.outerBar}>
           {/**
-           // ts-ignore */}
+           // @ts-expect-error */}
           <Animated.View style={bar} />
         </Animated.View>
       </PanGestureHandler>
