@@ -8,7 +8,10 @@
 package com.reactnativereanimatedtext;
 
 import android.content.Context;
+import android.os.Build;
 import android.text.Spannable;
+import android.view.Gravity;
+
 import androidx.annotation.Nullable;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableNativeMap;
@@ -104,14 +107,17 @@ public class JBTextViewManager
 
     int textBreakStrategy =
       TextAttributeProps.getTextBreakStrategy(paragraphAttributes.getString("textBreakStrategy"));
-
+    int currentJustificationMode = 0;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+      currentJustificationMode = view.getJustificationMode();
+    }
     return new ReactTextUpdate(
       spanned,
       state.hasKey("mostRecentEventCount") ? state.getInt("mostRecentEventCount") : -1,
       false, // TODO add this into local Data
-      TextAttributeProps.getTextAlignment(props, TextLayoutManager.isRTL(attributedString)),
+      TextAttributeProps.getTextAlignment(props, TextLayoutManager.isRTL(attributedString), Gravity.LEFT),
       textBreakStrategy,
-      TextAttributeProps.getJustificationMode(props));
+      TextAttributeProps.getJustificationMode(props, currentJustificationMode));
   }
 
   @Override
