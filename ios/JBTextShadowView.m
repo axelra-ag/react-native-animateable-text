@@ -385,7 +385,7 @@
   return size.height + maximumDescender;
 }
 
-static YGSize RCTTextShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
+static YGSize RCTTextShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
 {
   CGSize maximumSize = (CGSize){
     widthMode == YGMeasureModeUndefined ? CGFLOAT_MAX : RCTCoreGraphicsFloatFromYogaFloat(width),
@@ -422,7 +422,7 @@ static YGSize RCTTextShadowViewMeasure(YGNodeRef node, float width, YGMeasureMod
   };
 }
 
-static float RCTTextShadowViewBaseline(YGNodeRef node, const float width, const float height)
+static float RCTTextShadowViewBaseline(YGNodeConstRef node, const float width, const float height)
 {
   JBTextShadowView *shadowTextView = (__bridge JBTextShadowView *)YGNodeGetContext(node);
 
