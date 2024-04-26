@@ -107,7 +107,6 @@ class TouchableText extends React.Component<AnimateableTextProps, State> {
   touchableHandleResponderTerminationRequest?: () => boolean;
 
   state = {
-    ...Touchable.Mixin.touchableGetInitialState(),
     isHighlighted: false,
     createResponderHandlers: this._createResponseHandlers.bind(this),
     responseHandlers: null,
@@ -131,7 +130,6 @@ class TouchableText extends React.Component<AnimateableTextProps, State> {
     if (isTouchable(props)) {
       props = {
         ...props,
-        ...this.state.responseHandlers,
         isHighlighted: this.state.isHighlighted,
       };
     }
