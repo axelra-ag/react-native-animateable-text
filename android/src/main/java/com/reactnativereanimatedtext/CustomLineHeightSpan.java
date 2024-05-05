@@ -10,7 +10,7 @@ package com.reactnativereanimatedtext;
 import android.graphics.Paint;
 import android.text.style.LineHeightSpan;
 
-import com.facebook.react.views.text.ReactSpan;
+import com.facebook.react.views.text.internal.span.ReactSpan;
 
 /**
  * We use a custom {@link LineHeightSpan}, because `lineSpacingExtra` is broken. Details here:
