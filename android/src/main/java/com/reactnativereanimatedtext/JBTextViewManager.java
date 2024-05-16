@@ -29,7 +29,7 @@ import com.facebook.react.views.text.ReactTextView;
 import com.facebook.react.views.text.ReactTextViewManager;
 import com.facebook.react.views.text.ReactTextViewManagerCallback;
 import com.facebook.react.views.text.TextAttributeProps;
-import com.facebook.react.views.text.TextInlineImageSpan;
+import com.facebook.react.views.text.internal.span.TextInlineImageSpan;
 import com.facebook.react.views.text.TextLayoutManager;
 import com.facebook.yoga.YogaMeasureMode;
 import java.util.Map;
