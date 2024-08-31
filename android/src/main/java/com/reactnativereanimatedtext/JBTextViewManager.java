@@ -13,8 +13,7 @@ import android.text.Spannable;
 import android.view.Gravity;
 
 import androidx.annotation.Nullable;
-import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.ReadableNativeMap;
+import com.facebook.react.common.mapbuffer.MapBuffer;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.common.annotations.VisibleForTesting;
 import com.facebook.react.module.annotations.ReactModule;
@@ -44,6 +43,11 @@ public class JBTextViewManager
   implements IViewManagerWithChildren {
 
   @VisibleForTesting public static final String REACT_CLASS = "JBAnimatedText";
+  private static final short TX_STATE_KEY_ATTRIBUTED_STRING = 0;
+  private static final short TX_STATE_KEY_PARAGRAPH_ATTRIBUTES = 1;
+  // used for text input
+  private static final short TX_STATE_KEY_HASH = 2;
+  private static final short TX_STATE_KEY_MOST_RECENT_EVENT_COUNT = 3;
 
   protected @Nullable ReactTextViewManagerCallback mReactTextViewManagerCallback;
 
@@ -95,29 +99,35 @@ public class JBTextViewManager
   @Override
   public Object updateState(
     ReactTextView view, ReactStylesDiffMap props, @Nullable StateWrapper stateWrapper) {
-    // TODO T55794595: Add support for updating state with null stateWrapper
-    ReadableNativeMap state = stateWrapper.getStateData();
-    ReadableMap attributedString = state.getMap("attributedString");
-    ReadableMap paragraphAttributes = state.getMap("paragraphAttributes");
-
-    Spannable spanned =
-      TextLayoutManager.getOrCreateSpannableForText(
-        view.getContext(), attributedString, mReactTextViewManagerCallback);
-    view.setSpanned(spanned);
-
-    int textBreakStrategy =
-      TextAttributeProps.getTextBreakStrategy(paragraphAttributes.getString("textBreakStrategy"));
-    int currentJustificationMode = 0;
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-      currentJustificationMode = view.getJustificationMode();
+    MapBuffer state = stateWrapper.getStateDataMapBuffer();
+    if (state == null) {
+      return null;
     }
-    return new ReactTextUpdate(
-      spanned,
-      state.hasKey("mostRecentEventCount") ? state.getInt("mostRecentEventCount") : -1,
-      false, // TODO add this into local Data
-      TextAttributeProps.getTextAlignment(props, TextLayoutManager.isRTL(attributedString), Gravity.LEFT),
-      textBreakStrategy,
-      TextAttributeProps.getJustificationMode(props, currentJustificationMode));
+    else {
+      MapBuffer attributedString = state.getMapBuffer(TX_STATE_KEY_ATTRIBUTED_STRING);
+      MapBuffer paragraphAttributes = state.getMapBuffer(TX_STATE_KEY_PARAGRAPH_ATTRIBUTES);
+
+      Spannable spanned =
+        TextLayoutManager.getOrCreateSpannableForText(
+          view.getContext(), attributedString, mReactTextViewManagerCallback);
+      view.setSpanned(spanned);
+
+      int textBreakStrategy =
+        TextAttributeProps.getTextBreakStrategy(
+          paragraphAttributes.getString(TextLayoutManager.PA_KEY_TEXT_BREAK_STRATEGY));
+
+      int currentJustificationMode = 0;
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        currentJustificationMode = view.getJustificationMode();
+      }
+      return new ReactTextUpdate(
+        spanned,
+        state.contains(TX_STATE_KEY_MOST_RECENT_EVENT_COUNT) ? state.getInt(TX_STATE_KEY_MOST_RECENT_EVENT_COUNT) : -1,
+        false, // TODO add this into local Data
+        TextAttributeProps.getTextAlignment(props, TextLayoutManager.isRTL(attributedString), Gravity.LEFT),
+        textBreakStrategy,
+        TextAttributeProps.getJustificationMode(props, currentJustificationMode));
+    }
   }
 
   @Override
@@ -130,9 +140,9 @@ public class JBTextViewManager
   @Override
   public long measure(
     Context context,
-    ReadableMap localData,
-    ReadableMap props,
-    ReadableMap state,
+    MapBuffer localData,
+    MapBuffer props,
+    MapBuffer state,
     float width,
     YogaMeasureMode widthMode,
     float height,
