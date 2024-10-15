@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "react-native-animateable-text": ["../src/index"],
+      "react-native-animateable-text/*": ["../src/*"]
+    }
+  }
+}
