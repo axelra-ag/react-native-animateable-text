@@ -1,8 +1,9 @@
-import Slider from '@react-native-community/slider';
+
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import AnimateableText from 'react-native-animateable-text';
 import { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
+import {Slider} from '@miblanchard/react-native-slider';
 
 const style = {
   fontSize: 30,
@@ -40,7 +41,9 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Slider
-        style={{ width: '80%', height: 40 }}
+        containerStyle={{
+          width: '80%',
+        }}
         minimumValue={0}
         step={1}
         maximumValue={10000}
@@ -52,9 +55,6 @@ export default function App() {
         }}
       />
       <AnimateableText selectable style={style} animatedProps={animatedProps} />
-
-      <View style={{height: 100, width: 100, backgroundColor: 'red'}}></View>
-      <AnimateableText numberOfLines={1} style={{ height: 100, width: 100, backgroundColor: 'yellow', fontWeight: '900'}} text='rest asdfasdf asdfasd fassdfasdf  asdfasd' />
     </View>
   );
 }

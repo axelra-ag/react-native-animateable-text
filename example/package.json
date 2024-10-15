@@ -11,7 +11,7 @@
     "generatecpp": "node node_modules/react-native/scripts/generate-codegen-artifacts.js -p ../ -o ../gcpp -t all"
   },
   "dependencies": {
-    "@react-native-community/slider": "^4.5.3",
+    "@miblanchard/react-native-slider": "^2.6.0",
     "expo": "51.0.32",
     "expo-build-properties": "~0.12.5",
     "expo-dev-client": "~4.0.23",
