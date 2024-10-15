@@ -17,7 +17,7 @@
 #include <react/renderer/telemetry/TransactionTelemetry.h>
 #include <react/renderer/textlayoutmanager/TextLayoutContext.h>
 
-#include "ParagraphState.h"
+#include <react/renderer/components/text/ParagraphState.h> // EDITED
 
 namespace facebook::react {
 
@@ -162,7 +162,34 @@ Size CParagraphShadowNode::measureContent( // EDITED
       .size;
 }
 
-void CParagraphShadowNode::layout(LayoutContext layoutContext) {
+Float CParagraphShadowNode::baseline( // EDITED
+    const LayoutContext& layoutContext,
+    Size size) const {
+  auto layoutMetrics = getLayoutMetrics();
+  auto layoutConstraints =
+      LayoutConstraints{size, size, layoutMetrics.layoutDirection};
+  auto content =
+      getContentWithMeasuredAttachments(layoutContext, layoutConstraints);
+  auto attributedString = content.attributedString;
+
+  if (attributedString.isEmpty()) {
+    // Note: `zero-width space` is insufficient in some cases (e.g. when we need
+    // to measure the "height" of the font).
+    // TODO T67606511: We will redefine the measurement of empty strings as part
+    // of T67606511
+    auto string = CBaseTextShadowNode::getEmptyPlaceholder(); // EDITED
+    auto textAttributes = TextAttributes::defaultTextAttributes();
+    textAttributes.fontSizeMultiplier = layoutContext.fontSizeMultiplier;
+    textAttributes.apply(getConcreteProps().textAttributes);
+    attributedString.appendFragment({string, textAttributes, {}});
+  }
+
+  AttributedStringBox attributedStringBox{attributedString};
+  return textLayoutManager_->baseline(
+      attributedStringBox, getConcreteProps().paragraphAttributes, size);
+}
+
+void CParagraphShadowNode::layout(LayoutContext layoutContext) { // EDITED
   ensureUnsealed();
 
   auto layoutMetrics = getLayoutMetrics();
@@ -183,7 +210,7 @@ void CParagraphShadowNode::layout(LayoutContext layoutContext) {
 
   if (getConcreteProps().onTextLayout) {
     auto linesMeasurements = textLayoutManager_->measureLines(
-        content.attributedString, content.paragraphAttributes, size);
+        attributedStringBox, content.paragraphAttributes, size);
     getConcreteEventEmitter().onTextLayout(linesMeasurements);
   }
 
