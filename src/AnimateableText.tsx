@@ -55,9 +55,11 @@ const viewConfig = {
   validAttributes: {
     ...ReactNativeViewAttributes.UIView,
     isHighlighted: true,
+    isPressable: true,
     numberOfLines: true,
     ellipsizeMode: true,
     allowFontScaling: true,
+    dynamicTypeRamp: true,
     maxFontSizeMultiplier: true,
     disabled: true,
     selectable: true,
@@ -69,6 +71,7 @@ const viewConfig = {
     onInlineViewLayout: true,
     dataDetectorType: true,
     android_hyphenationFrequency: true,
+    lineBreakStrategyIOS: true,
     text: true,
   },
   directEventTypes: {
@@ -265,5 +268,4 @@ TextToExport.displayName = 'Animateable';
 export const AnimateableText = TextToExport as React.ComponentClass<
   AnimateableTextProps,
   React.ElementRef<HostComponent<AnimateableTextProps>>
-> &
-  TextStatics;
+>;

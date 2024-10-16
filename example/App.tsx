@@ -1,9 +1,8 @@
-
 import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 import AnimateableText from 'react-native-animateable-text';
 import { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
-import {Slider} from '@miblanchard/react-native-slider';
+import { Slider } from '@miblanchard/react-native-slider';
 
 const style = {
   fontSize: 30,
