@@ -49,7 +49,7 @@ if (ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
           ReactAndroid::reactnative
   )
 else ()
-  message(FATAL_ERROR "react-native-live-markdown requires react-native 0.76 or newer.")
+  message(FATAL_ERROR "react-native-animateable-text requires react-native 0.76 or newer.")
 endif ()
 
 target_compile_options(

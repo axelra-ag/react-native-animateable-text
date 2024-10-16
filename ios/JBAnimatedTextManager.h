@@ -1,3 +1,7 @@
+/*
+ * Custom
+ */
+
 #import <React/RCTBaseTextViewManager.h>
 
 

@@ -1,3 +1,7 @@
+/*
+ * Custom
+ */
+
 #ifdef RCT_NEW_ARCH_ENABLED
 
 #import "JBAnimatedTextComponenetView.h"
