@@ -8,42 +8,68 @@ A fork of React Native's `<Text/>` component that supports Animated Values as te
   <tr>
     <th>Animateable Text Version</th>
     <th>RN Version</th>
+    <th>Old Arch</th>
+    <th>New Arch (Fabric)</th>
+  </tr>
+  <tr>
+    <td> ^0.14.0</td>
+    <td> ^0.76.0</td>
+    <td>✅</td>
+    <td>✅</td>
   </tr>
   <tr>
     <td> ^0.13.0</td>
     <td> ^0.75.0</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.12.0</td>
     <td> ^0.74.0</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.11.0</td>
     <td> ^0.71.7</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.10.0</td>
     <td> ^0.68</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.9.1</td>
     <td> ^0.67</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.8.0</td>
     <td> ^0.66</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.7.0</td>
     <td> ^0.65</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.6.0</td>
     <td> ^0.64</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.5.9</td>
     <td> ^0.63</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
 </table>
 
