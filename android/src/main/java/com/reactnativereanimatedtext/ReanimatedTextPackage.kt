@@ -1,4 +1,8 @@
-package com.reactnativereanimatedtext
+/*
+ * Custom
+ */
+ 
+ package com.reactnativereanimatedtext
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

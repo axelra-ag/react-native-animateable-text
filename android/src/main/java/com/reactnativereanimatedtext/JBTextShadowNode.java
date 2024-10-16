@@ -1,8 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * Custom - onBeforeLayout (forked)
  */
 
 package com.reactnativereanimatedtext;
@@ -40,15 +37,20 @@ private static final Field mPreparedSpannableTextField;
 
   @Override
   public void onBeforeLayout(NativeViewHierarchyOptimizer nativeViewHierarchyOptimizer) {
+    // ADDED
     try {
+    // END ADDED
       mPreparedSpannableTextField.set(this, spannedFromShadowNode(
         this,
-        /* text (e.g. from `value` prop): */ mText,
+        /* text (e.g. from `value` prop): */ mText, // EDITED
         /* supportsInlineViews: */ true,
         nativeViewHierarchyOptimizer));
+      markUpdated();
+    // ADDED
     } catch (IllegalAccessException e) {
       throw new RuntimeException(e);
     }
+    // END ADDED
   }
 
   @ReactProp(name = "text")
