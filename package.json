@@ -1,7 +1,7 @@
 {
   "name": "react-native-animateable-text",
   "version": "0.14.0",
-  "description": "A fork of React Native's <Text/> component that supports Animated Values",
+  "description": "A fork of React Native's `<Text/> component that supports Reanimated Shared Values as text!",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
@@ -35,6 +35,7 @@
     "ios",
     "android",
     "reanimated",
+    "shared values",
     "animated",
     "text"
   ],
