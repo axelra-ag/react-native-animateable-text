@@ -3,8 +3,6 @@ import { AnimateableText as RawAnimateableText } from './AnimateableText';
 
 Animated.addWhitelistedNativeProps({ text: true });
 
-const AnimateableText = Animated.createAnimatedComponent(
-  RawAnimateableText
-) as typeof RawAnimateableText;
+const AnimateableText = Animated.createAnimatedComponent(RawAnimateableText);
 
 export default AnimateableText;
