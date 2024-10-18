@@ -1,3 +1,4 @@
+import React from 'react';
 import type { TextProps as NativeTextProps, Text as IText } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 
