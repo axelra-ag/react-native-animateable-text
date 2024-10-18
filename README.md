@@ -1,9 +1,9 @@
 # react-native-animateable-text
 
-A fork of React Native's `<Text/>` component that supports Animated Values as text!
+A fork of React Native's `<Text/>` component that supports Reanimated Shared Values as text!
 
-## Compatibility
-
+## Compatibility 
+(🚨 Make sure you use the correct version for your RN project)
 <table>
   <tr>
     <th>Animateable Text Version</th>
@@ -75,12 +75,24 @@ A fork of React Native's `<Text/>` component that supports Animated Values as te
 
 ## Installation
 
+First sure you have reanimated already installed and linked from [here](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/) then run
 ```sh
 yarn add react-native-animateable-text
+```
+
+then for *Expo* managed projects
+```sh
+yarn prebuild
+```
+
+or for *ReactNative* bare projects
+```sh
 npx pod-install
 ```
 
-## Usage (Reanimated 2)
+
+
+## Usage (Reanimated 2/3)
 
 > Note about Reanimated 2: The library does not work with Alpha 9 until RC1. Make sure to update to RC2 or later!
 
@@ -90,40 +102,22 @@ Use it the same as a `<Text/>` component, except instead of passing the text as 
 import AnimateableText from 'react-native-animateable-text';
 
 const Example: React.FC = () => {
-  const text = useSharedValue('World');
+  const reanimatedText = useSharedValue('World');
 
-  const animatedText = useDerivedValue(() => `Hello ${text.value}`);
   const animatedProps = useAnimatedProps(() => {
     return {
-      text: animatedText.value,
+      text: reanimatedText.value,
     };
   });
 
   return (
     <AnimateableText
       animatedProps={animatedProps}
-      // same other props as Text component
+      // all other <Text /> props are also available
     />;
 };
 ```
 
-## Usage (Reanimated 1)
-
-```tsx
-import AnimateableText from 'react-native-animateable-text';
-
-const Example: React.FC = () => {
-  const text = useMemo(() => new Animated.Value('World'), []);
-
-  const animatedText = useMemo(() => concat('Hello', text));
-
-  return (
-    <AnimateableText
-      text={animatedText}
-      // same other props as Text component
-    />;
-};
-```
 
 ## [OMG, why would you build this?](https://www.npmjs.com/package/react-native-reanimated/v/1.4.0#omg-why-would-you-build-this-motivation)
 
