@@ -75,7 +75,7 @@ A fork of React Native's `<Text/>` component that supports Reanimated Shared Val
 
 ## Installation
 
-First sure you have reanimated already installed and linked from [here](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/) then run
+First make sure you have reanimated already installed and linked from [here](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/) then run
 ```sh
 yarn add react-native-animateable-text
 ```
@@ -130,17 +130,17 @@ This naturally comes with a few edge cases, for example:
 <ul>
 
 <li>
-Flicker: When changing values too fast, the text can be cut off and show an ellipsis. The problem gets worse the slower the device and the more congested the render queue is. Watch this GIF at 0.2x speed carefully: <br/>
+*Flicker*: When changing values too fast, the text can be cut off and show an ellipsis. The problem gets worse the slower the device and the more congested the render queue is. Watch this GIF at 0.2x speed carefully: <br/>
 <img src="https://user-images.githubusercontent.com/1629785/99287990-458d4600-283b-11eb-8d5e-0c1129189c89.gif"/>
 
 </li>
 <li>
-Inconsistent styling: When styling a <code>TextInput</code>, you need to add more styles to make it align with the rest of your text. (Behavior in screenshot happens only on Android)
+*Inconsistent styling*: When styling a <code>TextInput</code>, you need to add more styles and spacing to make it align with the default <code>Text</code> styles. (Behavior in screenshot happens only on Android)
 </li> <img src="https://user-images.githubusercontent.com/1629785/99298147-8c823800-2849-11eb-9939-e326dd8d9f25.png" width="388"/> <br/>
 
 <li>
-Lack of full capabilities: Not all props are available. With Animateable Text, you can use props that you cannot use on a TextInput, such as <code>selectable</code>, <code>dataDetectorType</code> or <code>onTextLayout</code>.
-
+*Lack of full capabilities*: Not all props are available. With Animateable Text, you can use props that you cannot use on a TextInput, such as <code>selectable</code>, <code>dataDetectorType</code> or <code>onTextLayout</code>.
+<br/>
 <img src="https://user-images.githubusercontent.com/1629785/99299532-a15fcb00-284b-11eb-83d2-d3601825a80a.png" width="388">
 </li>
 </ul>
