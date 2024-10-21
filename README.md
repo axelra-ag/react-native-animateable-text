@@ -80,12 +80,7 @@ First make sure you have reanimated already installed and linked from [here](htt
 yarn add react-native-animateable-text
 ```
 
-then for *Expo* managed projects
-```sh
-yarn prebuild
-```
-
-or for *ReactNative* bare projects
+then for *Expo* managed projects you need to prebuild your app, and for *ReactNative* bare projects you should run
 ```sh
 npx pod-install
 ```
