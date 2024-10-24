@@ -1,60 +1,93 @@
 # react-native-animateable-text
 
-A fork of React Native's `<Text/>` component that supports Animated Values as text!
+A fork of React Native's `<Text/>` component that supports Reanimated Shared Values as text!
 
-## Compatibility
-
+## Compatibility 
+(🚨 Make sure you use the correct version for your RN project)
 <table>
   <tr>
     <th>Animateable Text Version</th>
     <th>RN Version</th>
+    <th>Old Arch</th>
+    <th>New Arch (Fabric)</th>
+  </tr>
+  <tr>
+    <td> ^0.14.0</td>
+    <td> ^0.76.0</td>
+    <td>✅</td>
+    <td>✅</td>
   </tr>
   <tr>
     <td> ^0.13.0</td>
     <td> ^0.75.0</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.12.0</td>
     <td> ^0.74.0</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.11.0</td>
     <td> ^0.71.7</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.10.0</td>
     <td> ^0.68</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.9.1</td>
     <td> ^0.67</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.8.0</td>
     <td> ^0.66</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.7.0</td>
     <td> ^0.65</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.6.0</td>
     <td> ^0.64</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
   <tr>
     <td> ^0.5.9</td>
     <td> ^0.63</td>
+    <td>✅</td>
+    <td>🛑</td>
   </tr>
 </table>
 
 ## Installation
 
+First make sure you have reanimated already installed and linked from [here](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/) then run
 ```sh
 yarn add react-native-animateable-text
+```
+
+then for *Expo* managed projects you need to prebuild your project, and for *ReactNative* bare projects you should run
+```sh
 npx pod-install
 ```
 
-## Usage (Reanimated 2)
+
+
+## Usage (Reanimated 2/3)
 
 > Note about Reanimated 2: The library does not work with Alpha 9 until RC1. Make sure to update to RC2 or later!
 
@@ -64,40 +97,22 @@ Use it the same as a `<Text/>` component, except instead of passing the text as 
 import AnimateableText from 'react-native-animateable-text';
 
 const Example: React.FC = () => {
-  const text = useSharedValue('World');
+  const reanimatedText = useSharedValue('World');
 
-  const animatedText = useDerivedValue(() => `Hello ${text.value}`);
   const animatedProps = useAnimatedProps(() => {
     return {
-      text: animatedText.value,
+      text: reanimatedText.value,
     };
   });
 
   return (
     <AnimateableText
       animatedProps={animatedProps}
-      // same other props as Text component
+      // all other <Text /> props are also available
     />;
 };
 ```
 
-## Usage (Reanimated 1)
-
-```tsx
-import AnimateableText from 'react-native-animateable-text';
-
-const Example: React.FC = () => {
-  const text = useMemo(() => new Animated.Value('World'), []);
-
-  const animatedText = useMemo(() => concat('Hello', text));
-
-  return (
-    <AnimateableText
-      text={animatedText}
-      // same other props as Text component
-    />;
-};
-```
 
 ## [OMG, why would you build this?](https://www.npmjs.com/package/react-native-reanimated/v/1.4.0#omg-why-would-you-build-this-motivation)
 
@@ -110,17 +125,17 @@ This naturally comes with a few edge cases, for example:
 <ul>
 
 <li>
-Flicker: When changing values too fast, the text can be cut off and show an ellipsis. The problem gets worse the slower the device and the more congested the render queue is. Watch this GIF at 0.2x speed carefully: <br/>
+*Flicker*: When changing values too fast, the text can be cut off and show an ellipsis. The problem gets worse the slower the device and the more congested the render queue is. Watch this GIF at 0.2x speed carefully: <br/>
 <img src="https://user-images.githubusercontent.com/1629785/99287990-458d4600-283b-11eb-8d5e-0c1129189c89.gif"/>
 
 </li>
 <li>
-Inconsistent styling: When styling a <code>TextInput</code>, you need to add more styles to make it align with the rest of your text. (Behavior in screenshot happens only on Android)
+*Inconsistent styling*: When styling a <code>TextInput</code>, you need to add more styles and spacing to make it align with the default <code>Text</code> styles. (Behavior in screenshot happens only on Android)
 </li> <img src="https://user-images.githubusercontent.com/1629785/99298147-8c823800-2849-11eb-9939-e326dd8d9f25.png" width="388"/> <br/>
 
 <li>
-Lack of full capabilities: Not all props are available. With Animateable Text, you can use props that you cannot use on a TextInput, such as <code>selectable</code>, <code>dataDetectorType</code> or <code>onTextLayout</code>.
-
+*Lack of full capabilities*: Not all props are available. With Animateable Text, you can use props that you cannot use on a TextInput, such as <code>selectable</code>, <code>dataDetectorType</code> or <code>onTextLayout</code>.
+<br/>
 <img src="https://user-images.githubusercontent.com/1629785/99299532-a15fcb00-284b-11eb-83d2-d3601825a80a.png" width="388">
 </li>
 </ul>
