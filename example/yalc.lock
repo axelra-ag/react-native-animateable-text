@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "packages": {
+    "react-native-animateable-text": {
+      "signature": "959eaedf8cc6ead0a4d9bac9f35f6aa9",
+      "file": true
+    }
+  }
+}
