@@ -1,7 +1,7 @@
 {
   "name": "react-native-animateable-text",
-  "version": "0.13.0",
-  "description": "A fork of React Native's <Text/> component that supports Animated Values",
+  "version": "0.14.0",
+  "description": "A fork of React Native's `<Text/> component that supports Reanimated Shared Values as text!",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
@@ -17,7 +17,8 @@
     "!lib/typescript/example",
     "!**/__tests__",
     "!**/__fixtures__",
-    "!**/__mocks__"
+    "!**/__mocks__",
+    "react-native.config.js"
   ],
   "scripts": {
     "test": "jest",
@@ -34,6 +35,7 @@
     "ios",
     "android",
     "reanimated",
+    "shared values",
     "animated",
     "text"
   ],
@@ -45,34 +47,28 @@
   },
   "homepage": "https://github.com/axelra-ag/react-native-animateable-text#readme",
   "devDependencies": {
-    "@commitlint/config-conventional": "^8.3.4",
-    "@react-native-community/bob": "^0.16.2",
+    "@commitlint/config-conventional": "^17.0.2",
+    "@miblanchard/react-native-slider": "^2.6.0",
     "@react-native-community/eslint-config": "^2.0.0",
-    "@release-it/conventional-changelog": "^1.1.4",
-    "@types/jest": "^26.0.0",
-    "@types/react": "^16.9.19",
-    "@types/react-native": "0.62.13",
+    "@release-it/conventional-changelog": "^5.0.0",
+    "@types/react": "^18.3.11",
     "commitlint": "^8.3.5",
     "dotenv-cli": "^7.2.1",
     "eslint": "^7.2.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.3",
     "husky": "^4.2.5",
-    "jest": "^26.0.1",
-    "pod-install": "^0.1.0",
     "prettier": "^2.0.5",
-    "react": "16.11.0",
-    "react-native": ">=0.64.0-rc.3",
-    "react-native-gesture-handler": "^2.3.2",
-    "react-native-reanimated": "^2.6.0",
-    "react-native-redash": "^16.2.3",
-    "release-it": "^13.5.8",
-    "typescript": "^3.8.3"
+    "react-native": "0.76.0",
+    "react-native-builder-bob": "^0.20.0",
+    "react-native-reanimated": "~3.16.1",
+    "release-it": "^15.0.0",
+    "typescript": "^5.0.2"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": ">=0.64.0-rc.3",
-    "react-native-reanimated": "*"
+    "react-native": ">=0.74.0",
+    "react-native-reanimated": ">=3"
   },
   "jest": {
     "preset": "react-native",
@@ -80,12 +76,6 @@
       "<rootDir>/example/node_modules",
       "<rootDir>/lib/"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-commit": "yarn lint && yarn typescript"
-    }
   },
   "commitlint": {
     "extends": [
@@ -101,7 +91,7 @@
       "publish": true
     },
     "github": {
-      "release": true
+      "release": false
     },
     "plugins": {
       "@release-it/conventional-changelog": {
@@ -138,17 +128,27 @@
     "trailingComma": "es5",
     "useTabs": false
   },
-  "@react-native-community/bob": {
+  "react-native-builder-bob": {
     "source": "src",
     "output": "lib",
     "targets": [
       "commonjs",
       "module",
-      "typescript"
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
     ]
   },
   "dependencies": {
     "deprecated-react-native-prop-types": "^2.3.0",
     "nullthrows": "^1.1.1"
+  },
+  "codegenConfig": {
+    "name": "JBAnimatedTextCodegen",
+    "jsSrcsDir": "./src/specs",
+    "type": "components"
   }
 }

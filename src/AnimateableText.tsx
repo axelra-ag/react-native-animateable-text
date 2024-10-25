@@ -9,7 +9,6 @@
  */
 
 'use strict';
-const DeprecatedTextPropTypes = require('deprecated-react-native-prop-types/DeprecatedTextPropTypes');
 const React = require('react');
 const ReactNativeViewAttributes = require('react-native/Libraries/Components/View/ReactNativeViewAttributes');
 const Touchable = require('react-native/Libraries/Components/Touchable/Touchable');
@@ -56,9 +55,11 @@ const viewConfig = {
   validAttributes: {
     ...ReactNativeViewAttributes.UIView,
     isHighlighted: true,
+    isPressable: true,
     numberOfLines: true,
     ellipsizeMode: true,
     allowFontScaling: true,
+    dynamicTypeRamp: true,
     maxFontSizeMultiplier: true,
     disabled: true,
     selectable: true,
@@ -70,6 +71,7 @@ const viewConfig = {
     onInlineViewLayout: true,
     dataDetectorType: true,
     android_hyphenationFrequency: true,
+    lineBreakStrategyIOS: true,
     text: true,
   },
   directEventTypes: {
@@ -262,14 +264,8 @@ TextToExport.displayName = 'Animateable';
 /* $FlowFixMe(>=0.89.0 site=react_native_fb) This comment suppresses an error
  * found when Flow v0.89 was deployed. To see the error, delete this comment
  * and run Flow. */
-TextToExport.propTypes = DeprecatedTextPropTypes;
-
-type TextStatics = {
-  propTypes: typeof DeprecatedTextPropTypes;
-};
 
 export const AnimateableText = TextToExport as React.ComponentClass<
   AnimateableTextProps,
   React.ElementRef<HostComponent<AnimateableTextProps>>
-> &
-  TextStatics;
+>;

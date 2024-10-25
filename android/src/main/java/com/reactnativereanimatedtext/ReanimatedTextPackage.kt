@@ -1,21 +1,23 @@
-package com.reactnativereanimatedtext
-
-import java.util.Arrays
-import java.util.Collections
+/*
+ * Custom
+ */
+ 
+ package com.reactnativereanimatedtext
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
-import com.facebook.react.bridge.JavaScriptModule
-import com.reactnativereanimatedtext.JBTextViewManager
+import java.util.ArrayList
 
 class ReanimatedTextPackage : ReactPackage {
-    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return Arrays.asList<NativeModule>(ReanimatedTextModule(reactContext))
-    }
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+    val viewManagers: MutableList<ViewManager<*, *>> = ArrayList()
+    viewManagers.add(JBTextViewManager())
+    return viewManagers
+  }
 
-    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-        return Arrays.asList<ViewManager<*, *>>(JBTextViewManager())
-    }
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+    return emptyList()
+  }
 }
