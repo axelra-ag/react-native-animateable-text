@@ -9,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface JBTextShadowView : RCTTextShadowView
 
-@property (nonatomic, assign) NSString* text;
+@property (nonatomic, copy) NSString* text;
 
 @end
 
