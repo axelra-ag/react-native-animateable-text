@@ -12,7 +12,7 @@ A fork of React Native's `<Text/>` component that supports Reanimated Shared Val
     <th>New Arch (Fabric)</th>
   </tr>
   <tr>
-    <td> ^0.14.0</td>
+    <td> ^0.14.1</td>
     <td> ^0.76.0</td>
     <td>✅</td>
     <td>✅</td>
@@ -134,7 +134,7 @@ This naturally comes with a few edge cases, for example:
 </li> <img src="https://user-images.githubusercontent.com/1629785/99298147-8c823800-2849-11eb-9939-e326dd8d9f25.png" width="388"/> <br/>
 
 <li>
-*Lack of full capabilities*: Not all props are available. With Animateable Text, you can use props that you cannot use on a TextInput, such as <code>selectable</code>, <code>dataDetectorType</code> or <code>onTextLayout</code>.
+*Lack of full capabilities*: Not all props are available. With Animateable Text, you can use props that you cannot use on a TextInput, such as <code>selectable</code> (Android), <code>dataDetectorType</code> or <code>onTextLayout</code>.
 <br/>
 <img src="https://user-images.githubusercontent.com/1629785/99299532-a15fcb00-284b-11eb-83d2-d3601825a80a.png" width="388">
 </li>
