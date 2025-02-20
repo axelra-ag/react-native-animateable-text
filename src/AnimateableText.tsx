@@ -13,7 +13,7 @@ const React = require('react');
 const ReactNativeViewAttributes = require('react-native/Libraries/Components/View/ReactNativeViewAttributes');
 const Touchable = require('react-native/Libraries/Components/Touchable/Touchable');
 
-const createReactNativeComponentClass = require('react-native/Libraries/Renderer/shims/createReactNativeComponentClass');
+const createReactNativeComponentClass = require('react-native/Libraries/Renderer/shims/createReactNativeComponentClass').default;
 const nullthrows = require('nullthrows');
 const processColor = require('react-native/Libraries/StyleSheet/processColor');
 import type {
