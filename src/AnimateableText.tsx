@@ -2,8 +2,10 @@ import React from 'react'
 import type { Ref, ForwardRefExoticComponent, RefAttributes } from "react";
 import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
 import { type GestureResponderEvent, processColor } from "react-native";
+// @ts-ignore
 import ReactNativeViewAttributes from "react-native/Libraries/Components/View/ReactNativeViewAttributes";
 import Touchable from "react-native/Libraries/Components/Touchable/Touchable";
+// @ts-ignore
 import createReactNativeComponentClass from "react-native/Libraries/Renderer/shims/createReactNativeComponentClass";
 import nullthrows from "nullthrows";
 import type { AnimateableTextProps } from "./TextProps";
