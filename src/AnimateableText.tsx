@@ -1,53 +1,15 @@
-/**
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @flow
- * @format
- */
-
-'use strict';
-const React = require('react');
-const ReactNativeViewAttributes = require('react-native/Libraries/Components/View/ReactNativeViewAttributes');
-const Touchable = require('react-native/Libraries/Components/Touchable/Touchable');
-
-const createReactNativeComponentClass = require('react-native/Libraries/Renderer/shims/createReactNativeComponentClass').default;
-const nullthrows = require('nullthrows');
-const processColor = require('react-native/Libraries/StyleSheet/processColor');
-import type {
-  Text as IText,
-  GestureResponderEvent,
-  HostComponent,
-} from 'react-native';
-import type { AnimateableTextProps } from './TextProps';
-
-type PressRetentionOffset = {
-  top: number;
-  left: number;
-  bottom: number;
-  right: number;
-};
-
-type ResponseHandlers = {
-  onStartShouldSetResponder: () => boolean;
-  onResponderGrant: (event: GestureResponderEvent, dispatchID: string) => void;
-  onResponderMove: (event: GestureResponderEvent) => void;
-  onResponderRelease: (event: GestureResponderEvent) => void;
-  onResponderTerminate: (event: GestureResponderEvent) => void;
-  onResponderTerminationRequest: () => boolean;
-};
-
-type State = {
-  touchable: {
-    touchState?: string;
-    responderID?: number;
-  };
-  isHighlighted: boolean;
-  createResponderHandlers: () => ResponseHandlers;
-  responseHandlers?: ResponseHandlers;
-};
+import React from 'react'
+import type { Ref, ForwardRefExoticComponent, RefAttributes } from "react";
+import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
+import { type GestureResponderEvent, processColor } from "react-native";
+// @ts-ignore
+import ReactNativeViewAttributes from "react-native/Libraries/Components/View/ReactNativeViewAttributes";
+import Touchable from "react-native/Libraries/Components/Touchable/Touchable";
+// @ts-ignore
+import createReactNativeComponentClass from "react-native/Libraries/Renderer/shims/createReactNativeComponentClass";
+import nullthrows from "nullthrows";
+import type { AnimateableTextProps } from "./TextProps";
+import type { Text as IText } from "react-native";
 
 const PRESS_RECT_OFFSET = { top: 20, left: 20, right: 20, bottom: 30 };
 
@@ -75,197 +37,156 @@ const viewConfig = {
     text: true,
   },
   directEventTypes: {
-    topTextLayout: {
-      registrationName: 'onTextLayout',
-    },
-    topInlineViewLayout: {
-      registrationName: 'onInlineViewLayout',
-    },
+    topTextLayout: { registrationName: "onTextLayout" },
+    topInlineViewLayout: { registrationName: "onInlineViewLayout" },
   },
-  uiViewClassName: 'JBAnimatedText',
+  uiViewClassName: "JBAnimatedText",
 };
-
-/**
- * A React component for displaying text.
- *
- * See https://reactnative.dev/docs/text.html
- */
-class TouchableText extends React.Component<AnimateableTextProps, State> {
-  static defaultProps = {
-    accessible: true,
-    allowFontScaling: true,
-    ellipsizeMode: 'tail',
-  };
-
-  touchableGetPressRectOffset?: () => PressRetentionOffset;
-  touchableHandleActivePressIn?: () => void;
-  touchableHandleActivePressOut?: () => void;
-  touchableHandleLongPress?: (event: GestureResponderEvent) => void;
-  touchableHandlePress?: (event: GestureResponderEvent) => void;
-  touchableHandleResponderGrant?: (event: GestureResponderEvent) => void;
-  touchableHandleResponderMove?: (event: GestureResponderEvent) => void;
-  touchableHandleResponderRelease?: (event: GestureResponderEvent) => void;
-  touchableHandleResponderTerminate?: (event: GestureResponderEvent) => void;
-  touchableHandleResponderTerminationRequest?: () => boolean;
-
-  state = {
-    isHighlighted: false,
-    createResponderHandlers: this._createResponseHandlers.bind(this),
-    responseHandlers: null,
-  };
-
-  static getDerivedStateFromProps(
-    nextProps: AnimateableTextProps,
-    prevState: State
-  ): Partial<State> | null {
-    return prevState.responseHandlers == null && isTouchable(nextProps)
-      ? {
-          responseHandlers: prevState.createResponderHandlers(),
-        }
-      : null;
-  }
-
-  static viewConfig = viewConfig;
-
-  render(): React.ReactNode {
-    let props = this.props;
-    if (isTouchable(props)) {
-      props = {
-        ...props,
-        isHighlighted: this.state.isHighlighted,
-      };
-    }
-    if (props.selectionColor != null) {
-      props = {
-        ...props,
-        selectionColor: processColor(props.selectionColor),
-      };
-    }
-    if (__DEV__) {
-      if (Touchable.TOUCH_TARGET_DEBUG && props.onPress != null) {
-        props = {
-          ...props,
-          style: [props.style, { color: 'magenta' }],
-        };
-      }
-    }
-    return <RCTText {...props} ref={props.forwardedRef} />;
-  }
-
-  _createResponseHandlers(): ResponseHandlers {
-    return {
-      onStartShouldSetResponder: (): boolean => {
-        const { onStartShouldSetResponder } = this.props;
-        const shouldSetResponder =
-          (onStartShouldSetResponder == null
-            ? false
-            : onStartShouldSetResponder()) || isTouchable(this.props);
-
-        if (shouldSetResponder) {
-          this._attachTouchHandlers();
-        }
-        return shouldSetResponder;
-      },
-      onResponderGrant: (event: GestureResponderEvent): void => {
-        nullthrows(this.touchableHandleResponderGrant)(event);
-        if (this.props.onResponderGrant != null) {
-          this.props.onResponderGrant.call(this, event);
-        }
-      },
-      onResponderMove: (event: GestureResponderEvent): void => {
-        nullthrows(this.touchableHandleResponderMove)(event);
-        if (this.props.onResponderMove != null) {
-          this.props.onResponderMove.call(this, event);
-        }
-      },
-      onResponderRelease: (event: GestureResponderEvent): void => {
-        nullthrows(this.touchableHandleResponderRelease)(event);
-        if (this.props.onResponderRelease != null) {
-          this.props.onResponderRelease.call(this, event);
-        }
-      },
-      onResponderTerminate: (event: GestureResponderEvent): void => {
-        nullthrows(this.touchableHandleResponderTerminate)(event);
-        if (this.props.onResponderTerminate != null) {
-          this.props.onResponderTerminate.call(this, event);
-        }
-      },
-      onResponderTerminationRequest: (): boolean => {
-        const { onResponderTerminationRequest } = this.props;
-        if (!nullthrows(this.touchableHandleResponderTerminationRequest)()) {
-          return false;
-        }
-        if (onResponderTerminationRequest == null) {
-          return true;
-        }
-        return onResponderTerminationRequest();
-      },
-    };
-  }
-
-  /**
-   * Lazily attaches Touchable.Mixin handlers.
-   */
-  _attachTouchHandlers(): void {
-    if (this.touchableGetPressRectOffset != null) {
-      return;
-    }
-    for (const key in Touchable.Mixin) {
-      if (typeof Touchable.Mixin[key] === 'function') {
-        this[key] = Touchable.Mixin[key].bind(this);
-      }
-    }
-    this.touchableHandleActivePressIn = (): void => {
-      if (!this.props.suppressHighlighting && isTouchable(this.props)) {
-        this.setState({ isHighlighted: true });
-      }
-    };
-    this.touchableHandleActivePressOut = (): void => {
-      if (!this.props.suppressHighlighting && isTouchable(this.props)) {
-        this.setState({ isHighlighted: false });
-      }
-    };
-    this.touchableHandlePress = (event: GestureResponderEvent): void => {
-      if (this.props.onPress != null) {
-        this.props.onPress(event);
-      }
-    };
-    this.touchableHandleLongPress = (event: GestureResponderEvent): void => {
-      if (this.props.onLongPress != null) {
-        this.props.onLongPress(event);
-      }
-    };
-    this.touchableGetPressRectOffset = (): PressRetentionOffset =>
-      this.props.pressRetentionOffset == null
-        ? PRESS_RECT_OFFSET
-        : this.props.pressRetentionOffset;
-  }
-}
 
 const isTouchable = (props: AnimateableTextProps): boolean =>
   props.onPress != null ||
   props.onLongPress != null ||
-  // @ts-expect-error
   props.onStartShouldSetResponder != null;
 
 const RCTText = createReactNativeComponentClass(
   viewConfig.uiViewClassName,
-  () => viewConfig
+  () => viewConfig,
 );
 
-const Text = (props: AnimateableTextProps, forwardedRef?: React.Ref<IText>) => {
-  // @ts-expect-error
-  return <TouchableText {...props} forwardedRef={forwardedRef} />;
-};
-const TextToExport = React.forwardRef(Text);
-TextToExport.displayName = 'Animateable';
+const TouchableText = forwardRef<IText, AnimateableTextProps>(
+  (props, forwardedRef) => {
+    const [isHighlighted, setHighlighted] = useState(false);
+    const touchableRef = useRef<Record<string, any>>({});
+    const hasAttachedTouchHandlers = useRef(false);
+    const TouchableWithMixin = Touchable as typeof Touchable & {
+      Mixin: Record<string, () => void>;
+      TOUCH_TARGET_DEBUG: boolean;
+    };
+    const attachTouchHandlers = useCallback(() => {
+      if (hasAttachedTouchHandlers.current) return;
+      hasAttachedTouchHandlers.current = true;
 
-// TODO: Deprecate this.
-/* $FlowFixMe(>=0.89.0 site=react_native_fb) This comment suppresses an error
- * found when Flow v0.89 was deployed. To see the error, delete this comment
- * and run Flow. */
+      for (const key in TouchableWithMixin.Mixin) {
+        if (typeof TouchableWithMixin.Mixin[key] === "function") {
+          touchableRef.current[key] = TouchableWithMixin.Mixin[key].bind(
+            touchableRef.current,
+          );
+        }
+      }
 
-export const AnimateableText = TextToExport as React.ComponentClass<
-  AnimateableTextProps,
-  React.ElementRef<HostComponent<AnimateableTextProps>>
->;
+      touchableRef.current.touchableHandleActivePressIn = () => {
+        if (!props.suppressHighlighting && isTouchable(props)) {
+          setHighlighted(true);
+        }
+      };
+
+      touchableRef.current.touchableHandleActivePressOut = () => {
+        if (!props.suppressHighlighting && isTouchable(props)) {
+          setHighlighted(false);
+        }
+      };
+
+      touchableRef.current.touchableHandlePress = (
+        event: GestureResponderEvent,
+      ) => {
+        props.onPress?.(event);
+      };
+
+      touchableRef.current.touchableHandleLongPress = (
+        event: GestureResponderEvent,
+      ) => {
+        props.onLongPress?.(event);
+      };
+
+      touchableRef.current.touchableGetPressRectOffset = () =>
+        props.pressRetentionOffset ?? PRESS_RECT_OFFSET;
+    }, [hasAttachedTouchHandlers, props, setHighlighted, touchableRef]);
+
+    const responseHandlers = useMemo(() => {
+      if (!isTouchable(props)) return undefined;
+
+      return {
+        onStartShouldSetResponder: (): boolean => {
+          const shouldSet =
+            (props.onStartShouldSetResponder?.() ?? false) ||
+            isTouchable(props);
+
+          if (shouldSet) {
+            attachTouchHandlers();
+          }
+          return shouldSet;
+        },
+        onResponderGrant: (event: GestureResponderEvent) => {
+          nullthrows(touchableRef.current.touchableHandleResponderGrant)?.(
+            event,
+          );
+          props.onResponderGrant?.(event);
+        },
+        onResponderMove: (event: GestureResponderEvent) => {
+          nullthrows(touchableRef.current.touchableHandleResponderMove)?.(
+            event,
+          );
+          props.onResponderMove?.(event);
+        },
+        onResponderRelease: (event: GestureResponderEvent) => {
+          nullthrows(touchableRef.current.touchableHandleResponderRelease)?.(
+            event,
+          );
+          props.onResponderRelease?.(event);
+        },
+        onResponderTerminate: (event: GestureResponderEvent) => {
+          nullthrows(touchableRef.current.touchableHandleResponderTerminate)?.(
+            event,
+          );
+          props.onResponderTerminate?.(event);
+        },
+        onResponderTerminationRequest: (): boolean => {
+          const defaultRequest = nullthrows(
+            touchableRef.current.touchableHandleResponderTerminationRequest,
+          )();
+          return props.onResponderTerminationRequest?.() ?? defaultRequest;
+        },
+      };
+    }, [props, attachTouchHandlers]);
+
+    let selectionColor: (symbol & { __TYPE__: "Color" }) | undefined;
+    if (props.selectionColor != null) {
+      selectionColor = processColor(props.selectionColor) as
+        | (symbol & { __TYPE__: "Color" })
+        | undefined;
+    }
+
+    const renderedProps: AnimateableTextProps & {
+      ref: Ref<IText>;
+      isHighlighted: boolean;
+      selectionColor: (symbol & { __TYPE__: "Color" }) | undefined;
+    } = {
+      ...props,
+      ...(responseHandlers ?? {}),
+      ref: forwardedRef,
+      isHighlighted,
+      selectionColor,
+    };
+
+    if (isTouchable(props)) {
+      renderedProps.isHighlighted = isHighlighted;
+    }
+
+    if (
+      __DEV__ &&
+      TouchableWithMixin.TOUCH_TARGET_DEBUG &&
+      props.onPress != null
+    ) {
+      renderedProps.style = [props.style, { color: "magenta" }];
+    }
+
+    return <RCTText {...renderedProps} />;
+  },
+);
+
+TouchableText.displayName = "TouchableText";
+
+export const AnimateableText =
+  TouchableText as unknown as ForwardRefExoticComponent<
+    AnimateableTextProps & RefAttributes<IText>
+  >;
