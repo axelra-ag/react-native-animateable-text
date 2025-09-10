@@ -34,6 +34,16 @@ target_include_directories(
         ${LIB_CPP_DIR}
 )
 
+# Add ReactAndroid include directories for text components in RN 0.81+
+if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 81)
+  target_include_directories(
+          ${LIB_TARGET_NAME}
+          PUBLIC
+          /Users/wadahmax/.gradle/caches/8.14.3/transforms/eb6d09c91acf843499bdca80e0a66fd6/transformed/react-android-0.81.0-debug/prefab/modules/reactnative/include/react/renderer/components/text/platform/android
+          /Users/wadahmax/.gradle/caches/8.14.3/transforms/eb6d09c91acf843499bdca80e0a66fd6/transformed/react-android-0.81.0-debug/prefab/modules/reactnative/include/react/renderer/components/text/platform/cxx
+  )
+endif()
+
 find_package(fbjni REQUIRED CONFIG)
 find_package(ReactAndroid REQUIRED CONFIG)
 
@@ -52,15 +62,19 @@ else ()
   message(FATAL_ERROR "react-native-animateable-text requires react-native 0.76 or newer.")
 endif ()
 
-target_compile_options(
-        ${LIB_TARGET_NAME}
-        PRIVATE
-        -DLOG_TAG=\"ReactNative\"
-        -fexceptions
-        -frtti
-        -Wall
-        -std=c++20
-)
+if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 80)
+  target_compile_reactnative_options(${LIB_TARGET_NAME} PUBLIC)
+else()
+  target_compile_options(
+    ${LIB_TARGET_NAME}
+    PRIVATE
+    -fexceptions
+    -frtti
+    -std=c++20
+    -Wall
+  )
+endif()
+
 
 target_include_directories(
         ${CMAKE_PROJECT_NAME}
