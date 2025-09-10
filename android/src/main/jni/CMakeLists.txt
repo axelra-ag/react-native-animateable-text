@@ -36,12 +36,25 @@ target_include_directories(
 
 # Add ReactAndroid include directories for text components in RN 0.81+
 if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 81)
-  target_include_directories(
-          ${LIB_TARGET_NAME}
-          PUBLIC
-          /Users/wadahmax/.gradle/caches/8.14.3/transforms/eb6d09c91acf843499bdca80e0a66fd6/transformed/react-android-0.81.0-debug/prefab/modules/reactnative/include/react/renderer/components/text/platform/android
-          /Users/wadahmax/.gradle/caches/8.14.3/transforms/eb6d09c91acf843499bdca80e0a66fd6/transformed/react-android-0.81.0-debug/prefab/modules/reactnative/include/react/renderer/components/text/platform/cxx
-  )
+  # Find the React Native library
+  get_target_property(REACT_NATIVE_INCLUDE_DIRS ReactAndroid::reactnative INTERFACE_INCLUDE_DIRECTORIES)
+  foreach(INCLUDE_DIR ${REACT_NATIVE_INCLUDE_DIRS})
+    # Add text component platform include paths for Android and CXX
+    if(EXISTS "${INCLUDE_DIR}/react/renderer/components/text/platform/android")
+      target_include_directories(
+              ${LIB_TARGET_NAME}
+              PUBLIC
+              ${INCLUDE_DIR}/react/renderer/components/text/platform/android
+      )
+    endif()
+    if(EXISTS "${INCLUDE_DIR}/react/renderer/components/text/platform/cxx")
+      target_include_directories(
+              ${LIB_TARGET_NAME}
+              PUBLIC
+              ${INCLUDE_DIR}/react/renderer/components/text/platform/cxx
+      )
+    endif()
+  endforeach()
 endif()
 
 find_package(fbjni REQUIRED CONFIG)
