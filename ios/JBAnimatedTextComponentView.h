@@ -14,7 +14,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface JBAnimatedTextComponentView : RCTParagraphComponentView
 
-+ (ComponentDescriptorProvider)componentDescriptorProvider;
 
 @end
 
