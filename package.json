@@ -149,6 +149,11 @@
   "codegenConfig": {
     "name": "JBAnimatedTextCodegen",
     "jsSrcsDir": "./src/specs",
-    "type": "components"
+    "type": "components",
+    "ios": {
+      "componentProvider": {
+        "JBAnimatedText": "JBAnimatedTextComponentView"
+      }
+    }
   }
 }

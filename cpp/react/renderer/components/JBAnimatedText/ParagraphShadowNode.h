@@ -15,6 +15,7 @@
 #include <react/renderer/core/LayoutContext.h>
 #include <react/renderer/core/ShadowNode.h>
 #include <react/renderer/textlayoutmanager/TextLayoutManager.h>
+#include <react/renderer/textlayoutmanager/TextLayoutManagerExtended.h>
 
 namespace facebook::react {
 
@@ -29,11 +30,13 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
                                       JBAnimatedTextComponentName, // EDITED
                                       CParagraphProps, // EDITED
                                       ParagraphEventEmitter,
-                                      ParagraphState,
-                                      /* usesMapBufferForStateData */ true>,
+                                      ParagraphState>,
                                   public CBaseTextShadowNode { // EDITED
  public:
-  using ConcreteViewShadowNode::ConcreteViewShadowNode;
+  CParagraphShadowNode( // EDITED
+      const ShadowNodeFragment& fragment,
+      const ShadowNodeFamily::Shared& family,
+      ShadowNodeTraits traits);
 
   CParagraphShadowNode( // EDITED
       const ShadowNode& sourceShadowNode,
@@ -48,6 +51,8 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
 #ifdef ANDROID
     // Unsetting `FormsStackingContext` trait is essential on Android where we
     // can't mount views inside `TextView`.
+    // T221699219: This should be removed when PreparedLayoutTextView is rolled
+    // out.
     traits.unset(ShadowNodeTraits::Trait::FormsStackingContext);
 #endif
 
@@ -83,7 +88,13 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
     Attachments attachments;
   };
 
+ protected:
+  bool shouldNewRevisionDirtyMeasurement(
+      const ShadowNode& sourceShadowNode,
+      const ShadowNodeFragment& fragment) const override;
+
  private:
+  void initialize() noexcept;
   /*
    * Builds (if needed) and returns a reference to a `Content` object.
    */
@@ -100,7 +111,27 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
    * Creates a `State` object (with `AttributedText` and
    * `TextLayoutManager`) if needed.
    */
+  template <typename ParagraphStateT>
+  void updateStateIfNeeded(
+      const Content& content,
+      const MeasuredPreparedLayout& layout);
+
+  /*
+   * Creates a `State` object (with `AttributedText` and
+   * `TextLayoutManager`) if needed.
+   */
   void updateStateIfNeeded(const Content& content);
+
+  /**
+   * Returns any previously prepared layout, generated for measurement, which
+   * may be used, given the currently assigned layout to the ShadowNode
+   */
+  MeasuredPreparedLayout* findUsableLayout();
+
+  /**
+   * Returns the final measure of the content frame, before layout rounding
+   */
+  Size rawContentSize();
 
   std::shared_ptr<const TextLayoutManager> textLayoutManager_;
 
@@ -108,6 +139,12 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
    * Cached content of the subtree started from the node.
    */
   mutable std::optional<Content> content_{};
+
+  /*
+   * Intermediate layout results generated during measurement, that may be
+   * reused by the platform.
+   */
+  mutable std::vector<MeasuredPreparedLayout> measuredLayouts_;
 };
 
 } // namespace facebook::react
