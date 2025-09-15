@@ -13,6 +13,10 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.views.text.ReactTextView;
 import com.facebook.react.views.text.ReactTextViewManager;
+import com.facebook.react.views.text.ReactTextUpdate;
+import com.facebook.react.common.assets.ReactFontManager;
+import android.text.style.TypefaceSpan;
+import android.text.style.StyleSpan;
 
 import java.util.Map;
 
@@ -46,38 +50,8 @@ public class JBTextViewManager extends SimpleViewManager<ReactTextView> {
   @ReactProp(name = "text")
   public void setText(ReactTextView view, @Nullable String text) {
     android.util.Log.d("JBTextViewManager", "setText called with: " + text);
-    
-    if (text != null && !text.isEmpty()) {
-      // Create a simple spannable and text update
-      android.text.SpannableString spannable = new android.text.SpannableString(text);
-      
-      try {
-        com.facebook.react.views.text.ReactTextUpdate textUpdate = 
-            new com.facebook.react.views.text.ReactTextUpdate(
-                spannable,
-                -1, // UNSET
-                false, // containsImages
-                0, // paddingLeft
-                0, // paddingTop  
-                0, // paddingRight
-                0, // paddingBottom
-                android.view.Gravity.NO_GRAVITY, // textAlign
-                android.text.Layout.BREAK_STRATEGY_SIMPLE, // textBreakStrategy  
-                android.text.Layout.JUSTIFICATION_MODE_NONE // justificationMode
-            );
-        
-        view.setText(textUpdate);
-        android.util.Log.d("JBTextViewManager", "Text set successfully on view");
-        
-        // Force the view to update
-        view.requestLayout();
-        view.invalidate();
-        
-      } catch (Exception e) {
-        android.util.Log.e("JBTextViewManager", "Error setting text: " + e.getMessage());
-        e.printStackTrace();
-      }
-    }
+    mCurrentText = text;
+    updateTextWithCurrentSettings(view);
   }
 
   @ReactProp(name = "color", customType = "Color")
@@ -94,47 +68,31 @@ public class JBTextViewManager extends SimpleViewManager<ReactTextView> {
     view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, fontSize);
   }
 
+  // Store font properties and text for coordination and preservation
+  private String mFontFamily = null;
+  private String mFontWeight = null;
+  private String mFontStyle = null;
+  private String mCurrentText = null;
+
   @ReactProp(name = "fontWeight")
   public void setFontWeight(ReactTextView view, @Nullable String fontWeight) {
     android.util.Log.d("JBTextViewManager", "setFontWeight called with: " + fontWeight);
-    if (fontWeight != null) {
-      android.graphics.Typeface currentTypeface = view.getTypeface();
-      int style = android.graphics.Typeface.NORMAL;
-      
-      switch (fontWeight) {
-        case "bold":
-        case "700":
-        case "800":
-        case "900":
-          style = android.graphics.Typeface.BOLD;
-          break;
-        case "normal":
-        case "400":
-        default:
-          style = android.graphics.Typeface.NORMAL;
-          break;
-      }
-      
-      view.setTypeface(currentTypeface, style);
-    }
+    mFontWeight = fontWeight;
+    updateTextWithCurrentSettings(view);
+  }
+
+  @ReactProp(name = "fontFamily")
+  public void setFontFamily(ReactTextView view, @Nullable String fontFamily) {
+    android.util.Log.d("JBTextViewManager", "setFontFamily called with: " + fontFamily);
+    mFontFamily = fontFamily;
+    updateTextWithCurrentSettings(view);
   }
 
   @ReactProp(name = "fontStyle")
   public void setFontStyle(ReactTextView view, @Nullable String fontStyle) {
     android.util.Log.d("JBTextViewManager", "setFontStyle called with: " + fontStyle);
-    if (fontStyle != null) {
-      android.graphics.Typeface currentTypeface = view.getTypeface();
-      int currentStyle = currentTypeface != null ? currentTypeface.getStyle() : android.graphics.Typeface.NORMAL;
-      int newStyle = currentStyle;
-      
-      if ("italic".equals(fontStyle)) {
-        newStyle |= android.graphics.Typeface.ITALIC;
-      } else {
-        newStyle &= ~android.graphics.Typeface.ITALIC;
-      }
-      
-      view.setTypeface(currentTypeface, newStyle);
-    }
+    mFontStyle = fontStyle;
+    updateTextWithCurrentSettings(view);
   }
 
   @ReactProp(name = "textAlign")
@@ -223,5 +181,99 @@ public class JBTextViewManager extends SimpleViewManager<ReactTextView> {
     return MapBuilder.<String, Object>builder()
         .put("onTextLayout", MapBuilder.of("registrationName", "onTextLayout"))
         .build();
+  }
+
+  private void updateTextWithCurrentSettings(ReactTextView view) {
+    if (mCurrentText == null || mCurrentText.isEmpty()) {
+      return;
+    }
+    
+    android.util.Log.d("JBTextViewManager", "Updating text with current font settings");
+    
+    // Create spannable with font information applied
+    android.text.SpannableString spannable = createStyledSpannable(mCurrentText);
+    
+    try {
+      ReactTextUpdate textUpdate = new ReactTextUpdate(
+              spannable,
+              -1, // UNSET
+              false, // containsImages
+              0, // paddingLeft
+              0, // paddingTop  
+              0, // paddingRight
+              0, // paddingBottom
+              android.view.Gravity.NO_GRAVITY, // textAlign
+              android.text.Layout.BREAK_STRATEGY_SIMPLE, // textBreakStrategy  
+              android.text.Layout.JUSTIFICATION_MODE_NONE // justificationMode
+          );
+      
+      view.setText(textUpdate);
+      android.util.Log.d("JBTextViewManager", "Text updated with styled spannable");
+      
+      // Force the view to update
+      view.requestLayout();
+      view.invalidate();
+      
+    } catch (Exception e) {
+      android.util.Log.e("JBTextViewManager", "Error updating text with styling: " + e.getMessage());
+      e.printStackTrace();
+    }
+  }
+
+  private android.text.SpannableString createStyledSpannable(String text) {
+    android.text.SpannableString spannable = new android.text.SpannableString(text);
+    
+    // Apply font family if specified
+    if (mFontFamily != null) {
+      try {
+        // Get typeface using ReactFontManager (which accesses useFonts registry)
+        android.graphics.Typeface typeface = ReactFontManager.getInstance().getTypeface(
+            mFontFamily, 
+            android.graphics.Typeface.NORMAL, 
+            null // AssetManager - ReactFontManager handles this internally
+        );
+        
+        if (typeface != null) {
+          // Create a custom TypefaceSpan that uses our specific typeface
+          TypefaceSpan typefaceSpan = new TypefaceSpan(mFontFamily) {
+            @Override
+            public void updateDrawState(android.text.TextPaint paint) {
+              paint.setTypeface(typeface);
+            }
+            
+            @Override
+            public void updateMeasureState(android.text.TextPaint paint) {
+              paint.setTypeface(typeface);
+            }
+          };
+          
+          spannable.setSpan(typefaceSpan, 0, text.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+          android.util.Log.d("JBTextViewManager", "Applied font family span: " + mFontFamily);
+        }
+      } catch (Exception e) {
+        android.util.Log.w("JBTextViewManager", "Could not apply font family: " + mFontFamily + ", error: " + e.getMessage());
+      }
+    }
+    
+    // Apply font weight (bold)
+    if (mFontWeight != null) {
+      switch (mFontWeight) {
+        case "bold":
+        case "700":
+        case "800":
+        case "900":
+          spannable.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, text.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+          android.util.Log.d("JBTextViewManager", "Applied bold weight span");
+          break;
+      }
+    }
+    
+    // Apply font style (italic)
+    if (mFontStyle != null && "italic".equals(mFontStyle)) {
+      spannable.setSpan(new StyleSpan(android.graphics.Typeface.ITALIC), 0, text.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      android.util.Log.d("JBTextViewManager", "Applied italic style span");
+    }
+    
+    return spannable;
   }
 }
