@@ -17,6 +17,23 @@
 
 @implementation JBTextShadowView
 
+- (void)setText:(NSString *)text
+{
+  NSLog(@"setText called! Old value: '%@', New value: '%@'", _text, text);
+  _text = [text copy];
+  [self dirtyLayout];
+}
+
+- (void)didSetProps:(NSArray<NSString *> *)changedProps
+{
+  [super didSetProps:changedProps];
+  NSLog(@"JBTextShadowView didSetProps called with changed props: %@", changedProps);
+  
+  if ([changedProps containsObject:@"text"]) {
+    NSLog(@"Text property changed! New text value: %@", self.text);
+  }
+}
+
 - (NSAttributedString *)attributedTextWithMeasuredAttachmentsThatFitSize:(CGSize)size
 {
   static UIImage *placeholderImage;

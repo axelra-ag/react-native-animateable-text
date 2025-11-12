@@ -21,7 +21,7 @@
 #import "JBAnimatedTextManager.h"
 // END ADDED
 
-@interface JBAnimatedTextManager () <RCTUIManagerObserver>
+@interface JBAnimatedTextManager () <RCTUIManagerObserver> // EDITED
 
 @end
 
@@ -65,12 +65,15 @@ RCT_EXPORT_VIEW_PROPERTY(selectable, BOOL)
 
 - (RCTShadowView *)shadowView
 {
+  NSLog(@"Creating JBTextShadowView with bridge");
+
   // ADDED - REPLACED
-  RCTTextShadowView *shadowView = [[JBTextShadowView alloc] initWithBridge:self.bridge];
+  JBTextShadowView *shadowView = [[JBTextShadowView alloc] initWithBridge:self.bridge];
   // END ADDED - REPLACED
   shadowView.textAttributes.fontSizeMultiplier =
       [[[self.bridge moduleForName:@"AccessibilityManager"] valueForKey:@"multiplier"] floatValue];
   [_shadowViews addObject:shadowView];
+  NSLog(@"Created and added JBTextShadowView to shadow views collection");
   return shadowView;
 }
 

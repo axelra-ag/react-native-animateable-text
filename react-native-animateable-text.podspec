@@ -28,19 +28,18 @@ Pod::Spec.new do |s|
 
   install_modules_dependencies(s)
 
-  if ENV['USE_FRAMEWORKS'] != nil && ENV['RCT_NEW_ARCH_ENABLED'] == '1'
+  if ENV['RCT_NEW_ARCH_ENABLED'] == '1'
     add_dependency(s, "React-FabricComponents", :additional_framework_paths => [
       "react/renderer/textlayoutmanager/platform/ios",
       "react/renderer/components/text/platform/ios",
-      'react/renderer/components/text/BaseTextProps',
-      'react/renderer/components/JBAnimatedText'
+      "react/renderer/components/text/platform/cxx",
+      "react/renderer/components/text",
+      "react/renderer/components/JBAnimatedText"
     ])
-  end
 
-  if ENV['RCT_NEW_ARCH_ENABLED'] == '1'
     s.subspec "newarch" do |ss|
       ss.source_files         = "cpp/**/*.{cpp,h}"
-      ss.header_dir           = "JBAnimatedText"
+      ss.header_dir           = "react/renderer/components/JBAnimatedText"
       ss.pod_target_xcconfig  = { "HEADER_SEARCH_PATHS" => "\"$(PODS_TARGET_SRCROOT)/cpp\"" }
     end
   end

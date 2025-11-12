@@ -12,7 +12,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface JBAnimatedText : RCTParagraphComponentView
+@interface JBAnimatedTextComponentView : RCTParagraphComponentView
+
 
 @end
 
