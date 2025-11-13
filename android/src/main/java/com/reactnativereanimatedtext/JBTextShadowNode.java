@@ -17,11 +17,11 @@ import java.lang.reflect.Field;
 public class JBTextShadowNode extends ReactTextShadowNode {
   protected String mText = "";
 
-private static final Field mPreparedSpannableTextField;
+private static final Field preparedSpannableText;
   static {
     try {
-      mPreparedSpannableTextField = ReactTextShadowNode.class.getDeclaredField("mPreparedSpannableText");
-      mPreparedSpannableTextField.setAccessible(true);
+      preparedSpannableText = ReactTextShadowNode.class.getDeclaredField("preparedSpannableText");
+      preparedSpannableText.setAccessible(true);
     } catch (NoSuchFieldException e) {
       throw new RuntimeException(e);
     }
@@ -40,7 +40,7 @@ private static final Field mPreparedSpannableTextField;
     // ADDED
     try {
     // END ADDED
-      mPreparedSpannableTextField.set(this, spannedFromShadowNode(
+      preparedSpannableText.set(this, spannedFromShadowNode(
         this,
         /* text (e.g. from `value` prop): */ mText, // EDITED
         /* supportsInlineViews: */ true,
