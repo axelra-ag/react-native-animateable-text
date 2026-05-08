@@ -114,7 +114,7 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
   template <typename ParagraphStateT>
   void updateStateIfNeeded(
       const Content& content,
-      const MeasuredPreparedLayout& layout);
+      const MeasuredPreparedTextLayout& layout);
 
   /*
    * Creates a `State` object (with `AttributedText` and
@@ -126,7 +126,7 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
    * Returns any previously prepared layout, generated for measurement, which
    * may be used, given the currently assigned layout to the ShadowNode
    */
-  MeasuredPreparedLayout* findUsableLayout();
+  MeasuredPreparedTextLayout* findUsableLayout();
 
   /**
    * Returns the final measure of the content frame, before layout rounding
@@ -144,7 +144,7 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
    * Intermediate layout results generated during measurement, that may be
    * reused by the platform.
    */
-  mutable std::vector<MeasuredPreparedLayout> measuredLayouts_;
+  mutable std::vector<MeasuredPreparedTextLayout> measuredLayouts_;
 };
 
 } // namespace facebook::react

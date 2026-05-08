@@ -14,7 +14,7 @@
 
 namespace facebook::react {
 
-extern const char TextLayoutManagerKey[];
+inline constexpr char TextLayoutManagerKey[] = "TextLayoutManager";
 
 /*
  * Descriptor for <Paragraph> component.

@@ -49,7 +49,7 @@ void CParagraphShadowNode::initialize() noexcept { // EDITED
 
 CParagraphShadowNode::CParagraphShadowNode( // EDITED
     const ShadowNodeFragment& fragment,
-    const std::shared_ptr<const ShadowNodeFamily>& family,
+    const ShadowNodeFamily::Shared& family,
     ShadowNodeTraits traits)
     : ConcreteViewShadowNode(fragment, family, traits) {
   LOG(INFO) << "CParagraphShadowNode constructor called - JBAnimatedText is working!";
@@ -147,7 +147,7 @@ void CParagraphShadowNode::setTextLayoutManager( // EDITED
 template <typename ParagraphStateT>
 void CParagraphShadowNode::updateStateIfNeeded( // EDITED
     const Content& content,
-    const MeasuredPreparedLayout& layout) {
+    const MeasuredPreparedTextLayout& layout) {
   ensureUnsealed();
 
   auto& state = static_cast<const ParagraphStateT&>(getStateData());
@@ -183,10 +183,10 @@ void CParagraphShadowNode::updateStateIfNeeded(const Content& content) { // EDIT
       textLayoutManager_});
 }
 
-MeasuredPreparedLayout* CParagraphShadowNode::findUsableLayout() { // EDITED
-  MeasuredPreparedLayout* ret = nullptr;
+MeasuredPreparedTextLayout* CParagraphShadowNode::findUsableLayout() { // EDITED
+  MeasuredPreparedTextLayout* ret = nullptr;
 
-  if constexpr (TextLayoutManagerExtended::supportsPreparedLayout()) {
+  if constexpr (TextLayoutManagerExtended::supportsPreparedTextLayout()) {
     // We consider the layout to be reusable, if our content measurement,
     // combined with padding/border (not snapped) exactly corresponds to the
     // measurement of the node, before layout rounding. We may not find a
@@ -223,7 +223,7 @@ Size CParagraphShadowNode::rawContentSize() { // EDITED
 Size CParagraphShadowNode::measureContent( // EDITED
     const LayoutContext& layoutContext,
     const LayoutConstraints& layoutConstraints) const {
-  if constexpr (TextLayoutManagerExtended::supportsPreparedLayout()) {
+  if constexpr (TextLayoutManagerExtended::supportsPreparedTextLayout()) {
     for (const auto& layout : measuredLayouts_) {
       if (layout.layoutConstraints == layoutConstraints) {
         return layout.measurement.size;
@@ -239,7 +239,7 @@ Size CParagraphShadowNode::measureContent( // EDITED
       .surfaceId = getSurfaceId(),
   };
 
-  if constexpr (TextLayoutManagerExtended::supportsPreparedLayout()) {
+  if constexpr (TextLayoutManagerExtended::supportsPreparedTextLayout()) {
     if (ReactNativeFeatureFlags::enablePreparedTextLayout()) {
       TextLayoutManagerExtended tme(*textLayoutManager_);
 
@@ -251,12 +251,12 @@ Size CParagraphShadowNode::measureContent( // EDITED
       auto measurement = tme.measurePreparedLayout(
           preparedLayout, textLayoutContext, layoutConstraints);
 
-      measuredLayouts_.push_back(MeasuredPreparedLayout{
+      measuredLayouts_.push_back(MeasuredPreparedTextLayout{
           .layoutConstraints = layoutConstraints,
           .measurement = measurement,
           // PreparedLayout is not trivially copyable on all platforms
           // NOLINTNEXTLINE(performance-move-const-arg)
-          .preparedLayout = std::move(preparedLayout)});
+          .preparedTextLayout = std::move(preparedLayout)});
       assert_valid_size(measurement.size, layoutConstraints);
       return measurement.size;
     }
@@ -316,7 +316,7 @@ void CParagraphShadowNode::layout(LayoutContext layoutContext) { // EDITED
   auto measuredLayout = findUsableLayout();
 
   if constexpr (
-      TextLayoutManagerExtended::supportsPreparedLayout() &&
+      TextLayoutManagerExtended::supportsPreparedTextLayout() &&
       std::is_constructible_v<
           ParagraphState,
           decltype(content.attributedString),
