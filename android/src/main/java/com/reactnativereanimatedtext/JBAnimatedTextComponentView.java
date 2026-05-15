@@ -273,9 +273,15 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             // Convert letter spacing from DP to pixels
             float letterSpacingPx = PixelUtil.toPixelFromDIP(mLetterSpacing);
-            // Get the actual text size in pixels (getTextSize() returns pixels)
-            float textSizePx = getTextSize();
-            
+            // Use the configured font size (set via setFontSize / @ReactProp "fontSize"),
+            // NOT getTextSize(). The view's intrinsic text size stays at Android's
+            // theme default (~14sp) because rendering size is applied via
+            // AbsoluteSizeSpan in updateTextWithStyles, not via super.setTextSize.
+            // TextView.setLetterSpacing(em) scales the spacing by the rendered glyph
+            // size, so we must compute EM against the rendered size or the result is
+            // wrong by a factor of (renderedSize / 14sp).
+            float textSizePx = PixelUtil.toPixelFromSP(mFontSize);
+
             if (textSizePx > 0) {
                 // Calculate EM value: letter spacing in pixels / text size in pixels
                 float letterSpacingEm = letterSpacingPx / textSizePx;
