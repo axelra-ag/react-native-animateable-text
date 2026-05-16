@@ -209,9 +209,15 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
 
             super.setText(spannable, BufferType.SPANNABLE);
             mNeedsStyleUpdate = false;
-            
-            // Apply letter spacing after setting text since it's not part of the spannable
+
+            // Reapply letter spacing and line height after setting text since both
+            // depend on mFontSize (see applyLetterSpacing / applyLineHeight) and
+            // neither is encoded in the spannable. Without re-applying here, a
+            // prop order where lineHeight/letterSpacing arrive before fontSize
+            // leaves the value computed against the default 14sp instead of the
+            // configured size.
             applyLetterSpacing();
+            applyLineHeight();
         } catch (Exception e) {
             // Fallback to plain text if styling fails
             super.setText(mText, BufferType.NORMAL);
@@ -262,7 +268,15 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
     private void applyLineHeight() {
         if (!Float.isNaN(mLineHeight)) {
             float lineHeightPx = PixelUtil.toPixelFromDIP(mLineHeight);
-            float currentTextSize = getTextSize();
+            // Use the configured font size (mFontSize), NOT getTextSize(). The
+            // view's intrinsic text size stays at Android's theme default (~14sp)
+            // because rendering size is applied via AbsoluteSizeSpan in
+            // updateTextWithStyles, not via super.setTextSize. setLineSpacing(add,
+            // mult) is applied on top of the font-metrics line height, which is
+            // derived from the rendered glyph size, so `add` must be computed
+            // against the rendered size or each line gets extra
+            // (renderedSize − 14sp) of spurious spacing.
+            float currentTextSize = PixelUtil.toPixelFromSP(mFontSize);
             setLineSpacing(lineHeightPx - currentTextSize, 1.0f);
         }
     }
