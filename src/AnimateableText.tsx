@@ -2,8 +2,8 @@ import React from 'react'
 import type { Ref, ForwardRefExoticComponent, RefAttributes } from "react";
 import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
 import { type GestureResponderEvent, processColor } from "react-native";
-// @ts-ignore
-import ReactNativeViewAttributes from "react-native/Libraries/Components/View/ReactNativeViewAttributes";
+// RN 0.85+: ReactNativeViewAttributes removed; we use createViewConfig instead.
+import { createViewConfig } from "react-native/Libraries/NativeComponent/ViewConfig";
 import Touchable from "react-native/Libraries/Components/Touchable/Touchable";
 // @ts-ignore
 import createReactNativeComponentClass from "react-native/Libraries/Renderer/shims/createReactNativeComponentClass";
@@ -15,7 +15,6 @@ const PRESS_RECT_OFFSET = { top: 20, left: 20, right: 20, bottom: 30 };
 
 const viewConfig = {
   validAttributes: {
-    ...ReactNativeViewAttributes.UIView,
     isHighlighted: true,
     isPressable: true,
     numberOfLines: true,
@@ -41,7 +40,7 @@ const viewConfig = {
     topInlineViewLayout: { registrationName: "onInlineViewLayout" },
   },
   uiViewClassName: "JBAnimatedText",
-};
+} as const;
 
 const isTouchable = (props: AnimateableTextProps): boolean =>
   props.onPress != null ||
@@ -50,7 +49,7 @@ const isTouchable = (props: AnimateableTextProps): boolean =>
 
 const RCTText = createReactNativeComponentClass(
   viewConfig.uiViewClassName,
-  () => viewConfig,
+  () => createViewConfig(viewConfig),
 );
 
 const TouchableText = forwardRef<IText, AnimateableTextProps>(

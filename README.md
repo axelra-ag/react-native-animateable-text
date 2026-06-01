@@ -12,6 +12,12 @@ A fork of React Native's `<Text/>` component that supports Reanimated Shared Val
     <th>New Arch (Fabric)</th>
   </tr>
     <tr>
+    <td> ^0.19.0</td>
+    <td> ^0.85.3</td>
+    <td>🛑</td>
+    <td>✅</td>
+  </tr>
+    <tr>
     <td> ^0.18.1</td>
     <td> ^0.83.2</td>
     <td>🛑</td>
