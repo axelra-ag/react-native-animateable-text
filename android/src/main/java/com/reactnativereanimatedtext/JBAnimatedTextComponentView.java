@@ -1,6 +1,7 @@
 package com.reactnativereanimatedtext;
 
 import android.content.Context;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.text.Layout;
 import android.text.Spannable;
@@ -9,6 +10,7 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.LineHeightSpan;
 import android.text.style.StyleSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -122,7 +124,10 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
     public void setLineHeight(float lineHeight) {
         if (mLineHeight != lineHeight) {
             mLineHeight = lineHeight;
-            applyLineHeight();
+            // Trigger spannable rebuild so the new lineHeight is applied via
+            // the CustomLineHeightSpan injected in updateTextWithStyles.
+            mNeedsStyleUpdate = true;
+            updateTextWithStyles();
         }
     }
 
@@ -174,6 +179,24 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         );
 
+        // Apply lineHeight via LineHeightSpan rather than setLineSpacing — the
+        // latter is *additive* on top of the font's natural metrics (ascent +
+        // descent + leading), so passing `lineHeight - fontSize` as the extra
+        // overshoots by the natural-metrics overhead (~10-20% of fontSize).
+        // RN core's <Text> uses the same span-based approach, so this matches
+        // <Text> rendering exactly.
+        if (!Float.isNaN(mLineHeight)) {
+            int lineHeightPx = (int) Math.ceil(PixelUtil.toPixelFromDIP(mLineHeight));
+            if (lineHeightPx > 0) {
+                spannable.setSpan(
+                    new CustomLineHeightSpan(lineHeightPx),
+                    0,
+                    length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                );
+            }
+        }
+
         int typefaceStyle = Typeface.NORMAL;
         if (isBold(mFontWeight)) {
             typefaceStyle |= Typeface.BOLD;
@@ -209,9 +232,15 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
 
             super.setText(spannable, BufferType.SPANNABLE);
             mNeedsStyleUpdate = false;
-            
-            // Apply letter spacing after setting text since it's not part of the spannable
+
+            // Reapply letter spacing and line height after setting text since both
+            // depend on mFontSize (see applyLetterSpacing / applyLineHeight) and
+            // neither is encoded in the spannable. Without re-applying here, a
+            // prop order where lineHeight/letterSpacing arrive before fontSize
+            // leaves the value computed against the default 14sp instead of the
+            // configured size.
             applyLetterSpacing();
+            applyLineHeight();
         } catch (Exception e) {
             // Fallback to plain text if styling fails
             super.setText(mText, BufferType.NORMAL);
@@ -260,11 +289,12 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
     }
 
     private void applyLineHeight() {
-        if (!Float.isNaN(mLineHeight)) {
-            float lineHeightPx = PixelUtil.toPixelFromDIP(mLineHeight);
-            float currentTextSize = getTextSize();
-            setLineSpacing(lineHeightPx - currentTextSize, 1.0f);
-        }
+        // No-op: lineHeight is now applied via CustomLineHeightSpan in
+        // updateTextWithStyles. setLineSpacing(add, mult) was the previous
+        // approach but it's additive on top of the font's natural line metrics,
+        // which overshoots the user-requested lineHeight by the metrics
+        // overhead (~10-20% of fontSize). Kept here so reapplyAllStyles() can
+        // call it without surprises.
     }
 
     private void applyLetterSpacing() {
@@ -273,9 +303,15 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             // Convert letter spacing from DP to pixels
             float letterSpacingPx = PixelUtil.toPixelFromDIP(mLetterSpacing);
-            // Get the actual text size in pixels (getTextSize() returns pixels)
-            float textSizePx = getTextSize();
-            
+            // Use the configured font size (set via setFontSize / @ReactProp "fontSize"),
+            // NOT getTextSize(). The view's intrinsic text size stays at Android's
+            // theme default (~14sp) because rendering size is applied via
+            // AbsoluteSizeSpan in updateTextWithStyles, not via super.setTextSize.
+            // TextView.setLetterSpacing(em) scales the spacing by the rendered glyph
+            // size, so we must compute EM against the rendered size or the result is
+            // wrong by a factor of (renderedSize / 14sp).
+            float textSizePx = PixelUtil.toPixelFromSP(mFontSize);
+
             if (textSizePx > 0) {
                 // Calculate EM value: letter spacing in pixels / text size in pixels
                 float letterSpacingEm = letterSpacingPx / textSizePx;
@@ -354,6 +390,38 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
         @Override
         public void updateMeasureState(@NonNull android.text.TextPaint paint) {
             paint.setTypeface(mTypeface);
+        }
+    }
+
+    /**
+     * Span that enforces an exact line height (in pixels) on the layout, mirroring
+     * React Native core's CustomLineHeightSpan. The trick is to override the
+     * FontMetricsInt so that (-ascent + descent) == requested height — the layout
+     * engine then uses our values instead of the font's natural metrics.
+     */
+    private static class CustomLineHeightSpan implements LineHeightSpan {
+        private final int mHeight;
+
+        CustomLineHeightSpan(int height) {
+            mHeight = height;
+        }
+
+        @Override
+        public void chooseHeight(
+            CharSequence text,
+            int start,
+            int end,
+            int spanstartv,
+            int v,
+            Paint.FontMetricsInt fm
+        ) {
+            // fm.ascent is negative (above baseline). Total natural line height
+            // is (-fm.ascent + fm.descent). Set descent so the total equals
+            // mHeight regardless of whether the natural metrics were taller or
+            // shorter than requested.
+            fm.descent = mHeight + fm.ascent;
+            fm.bottom = fm.descent;
+            fm.top = fm.ascent;
         }
     }
 }
