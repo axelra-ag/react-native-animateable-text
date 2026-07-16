@@ -33,6 +33,8 @@ class CParagraphShadowNode final : public ConcreteViewShadowNode< // EDITED
                                       ParagraphState>,
                                   public CBaseTextShadowNode { // EDITED
  public:
+  using ConcreteViewShadowNode::ConcreteViewShadowNode;
+
   CParagraphShadowNode( // EDITED
       const ShadowNodeFragment& fragment,
       const ShadowNodeFamily::Shared& family,

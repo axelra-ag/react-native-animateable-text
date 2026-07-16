@@ -7,13 +7,12 @@
 
 #pragma once
 
-#include <limits>
-#include <memory>
+#include <string>
 
-#include <react/renderer/attributedstring/ParagraphAttributes.h>
-#include <react/renderer/components/text/BaseTextProps.h>
-#include <react/renderer/components/view/ViewProps.h>
-#include <react/renderer/core/Props.h>
+// EDITED: since RN 0.86, ParagraphProps is split into BaseParagraphProps and
+// platform-specific HostPlatformParagraphProps (`ParagraphProps` is an alias).
+// Instead of copying all of that, we subclass it and only add the `text` prop.
+#include <react/renderer/components/text/ParagraphProps.h>
 #include <react/renderer/core/PropsParserContext.h>
 
 namespace facebook::react {
@@ -23,7 +22,7 @@ namespace facebook::react {
  * Most of the props are directly stored in composed `ParagraphAttributes`
  * object.
  */
-class CParagraphProps : public ViewProps, public BaseTextProps { // EDITED
+class CParagraphProps : public ParagraphProps { // EDITED
  public:
   CParagraphProps() = default; // EDITED
   CParagraphProps( // EDITED
@@ -39,30 +38,11 @@ class CParagraphProps : public ViewProps, public BaseTextProps { // EDITED
 
 #pragma mark - Props
 
-  /*
-   * Contains all prop values that affect visual representation of the
-   * paragraph.
-   */
-  ParagraphAttributes paragraphAttributes{};
   // ADDED
   std::string text{};
   // END ADDED
 
-  /*
-   * Defines can the text be selected (and copied) or not.
-   */
-  bool isSelectable{};
-
-  bool onTextLayout{};
-
-#pragma mark - DebugStringConvertible
-
-#if RN_DEBUG_STRING_CONVERTIBLE
-  SharedDebugStringConvertibleList getDebugProps() const override;
-#endif
-
 #ifdef RN_SERIALIZABLE_STATE
-  ComponentName getDiffPropsImplementationTarget() const override;
   folly::dynamic getDiffProps(const Props* prevProps) const override;
 #endif
 };

@@ -18,7 +18,6 @@
 #include <react/renderer/telemetry/TransactionTelemetry.h>
 #include <react/renderer/textlayoutmanager/TextLayoutContext.h>
 #include <react/utils/FloatComparison.h>
-#include <react/utils/Telemetry.h>
 
 #include <react/renderer/components/text/ParagraphState.h>
 
@@ -34,9 +33,9 @@
           (layoutConstraints).maximumSize.height)
 
 namespace facebook::react {
-
 using Content = CParagraphShadowNode::Content; // EDITED
 
+// NOLINTNEXTLINE(facebook-hte-CArray, modernize-avoid-c-arrays)
 const char JBAnimatedTextComponentName[] = "JBAnimatedText"; // EDITED
 
 void CParagraphShadowNode::initialize() noexcept { // EDITED
@@ -52,7 +51,6 @@ CParagraphShadowNode::CParagraphShadowNode( // EDITED
     const ShadowNodeFamily::Shared& family,
     ShadowNodeTraits traits)
     : ConcreteViewShadowNode(fragment, family, traits) {
-  LOG(INFO) << "CParagraphShadowNode constructor called - JBAnimatedText is working!";
   initialize();
 }
 
@@ -60,7 +58,6 @@ CParagraphShadowNode::CParagraphShadowNode( // EDITED
     const ShadowNode& sourceShadowNode,
     const ShadowNodeFragment& fragment)
     : ConcreteViewShadowNode(sourceShadowNode, fragment) {
-  LOG(INFO) << "CParagraphShadowNode copy constructor called - JBAnimatedText is working!";
   initialize();
 }
 
@@ -160,11 +157,12 @@ void CParagraphShadowNode::updateStateIfNeeded( // EDITED
     return;
   }
 
-  setStateData(ParagraphStateT{
-      content.attributedString,
-      content.paragraphAttributes,
-      textLayoutManager_,
-      layout});
+  setStateData(
+      ParagraphStateT{
+          content.attributedString,
+          content.paragraphAttributes,
+          textLayoutManager_,
+          layout});
 }
 
 void CParagraphShadowNode::updateStateIfNeeded(const Content& content) { // EDITED
@@ -177,10 +175,11 @@ void CParagraphShadowNode::updateStateIfNeeded(const Content& content) { // EDIT
     return;
   }
 
-  setStateData(ParagraphState{
-      content.attributedString,
-      content.paragraphAttributes,
-      textLayoutManager_});
+  setStateData(
+      ParagraphState{
+          content.attributedString,
+          content.paragraphAttributes,
+          textLayoutManager_});
 }
 
 MeasuredPreparedTextLayout* CParagraphShadowNode::findUsableLayout() { // EDITED
@@ -251,12 +250,13 @@ Size CParagraphShadowNode::measureContent( // EDITED
       auto measurement = tme.measurePreparedLayout(
           preparedLayout, textLayoutContext, layoutConstraints);
 
-      measuredLayouts_.push_back(MeasuredPreparedTextLayout{
-          .layoutConstraints = layoutConstraints,
-          .measurement = measurement,
-          // PreparedLayout is not trivially copyable on all platforms
-          // NOLINTNEXTLINE(performance-move-const-arg)
-          .preparedTextLayout = std::move(preparedLayout)});
+      measuredLayouts_.push_back(
+          MeasuredPreparedTextLayout{
+              .layoutConstraints = layoutConstraints,
+              .measurement = measurement,
+              // PreparedTextLayout is not trivially copyable on all platforms
+              // NOLINTNEXTLINE(performance-move-const-arg)
+              .preparedTextLayout = std::move(preparedLayout)});
       assert_valid_size(measurement.size, layoutConstraints);
       return measurement.size;
     }

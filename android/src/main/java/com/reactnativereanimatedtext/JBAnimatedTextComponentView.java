@@ -52,6 +52,16 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
         mNeedsStyleUpdate = true;
     }
 
+    @Override
+    public int getCompoundPaddingRight() {
+        // Text is measured by RN's TextLayoutManager (via the C++ shadow node) but
+        // laid out again by this TextView. Sub-pixel disagreements between the two
+        // text engines can make the TextView wrap the last glyph onto an invisible
+        // second line (e.g. "470" rendering as "47"). Give the internal layout 1px
+        // of extra room so a fractional overflow never triggers a wrap.
+        return super.getCompoundPaddingRight() - 1;
+    }
+
     public void setText(String text) {
         if (!TextUtils.equals(mText, text)) {
             mText = text != null ? text : "";
@@ -167,8 +177,11 @@ public class JBAnimatedTextComponentView extends AppCompatTextView {
             );
         }
 
+        // Math.ceil matches RN's TextAttributeProps, which is what the measurement
+        // pass uses. Truncating here renders the text 1px smaller than it was
+        // measured at (e.g. 38.5px -> 38px), causing last-glyph clipping.
         spannable.setSpan(
-            new AbsoluteSizeSpan((int) PixelUtil.toPixelFromSP(mFontSize)),
+            new AbsoluteSizeSpan((int) Math.ceil(PixelUtil.toPixelFromSP(mFontSize))),
             0,
             length,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
