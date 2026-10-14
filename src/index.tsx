@@ -11,4 +11,5 @@ export type {
   ContentTransition,
   ContentTransitionDirection,
   ContentTransitionType,
+  ContentTransitionUnit,
 } from './TextProps';

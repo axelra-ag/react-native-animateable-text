@@ -22,15 +22,38 @@ import android.text.Layout
 import android.view.animation.AnimationUtils
 import androidx.annotation.RequiresApi
 import com.facebook.react.views.text.ReactTextView
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
+
+// Leaving segments a text keeps at most; the oldest go first. Bounds work and memory when
+// changes arrive every frame (scrubbing). Mirrors ios/JBTextTransitionAnimator.mm.
+private const val MAX_LEAVING_PER_SEGMENT = 1
+private const val MIN_MAX_LEAVING = 8
+private const val INVISIBLE_OPACITY = 0.01f
+// Blur radii are rounded to this step (px) so RenderEffects can be reused across frames.
+private const val BLUR_STEP_PX = 0.5f
+
+private val blurEffects = HashMap<Int, RenderEffect>()
+
+@RequiresApi(Build.VERSION_CODES.S)
+private fun blurEffect(radius: Float): RenderEffect? {
+  val step = (radius / BLUR_STEP_PX).roundToInt()
+  if (step <= 0) return null
+  return blurEffects.getOrPut(step) {
+    val r = step * BLUR_STEP_PX
+    RenderEffect.createBlurEffect(r, r, Shader.TileMode.DECAL)
+  }
+}
 
 class JBAnimatedTextView(context: Context) : ReactTextView(context) {
   var transitionMode = TextTransitionMode.NONE
   var transitionDurationSeconds = 0.0
   var transitionDirection = "auto"
+  var transitionUnit = TextTransitionUnit.AUTO
   var isFontSizeAdjustedToFit = false
   var maxLineCount = 0
 
@@ -42,8 +65,11 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
   private class OldText(
       val text: String,
       val lineCount: Int,
-      /** The whole old text, drawn in view coordinates at the old position. */
-      val node: RenderNode,
+      /**
+       * The whole old text, drawn in view coordinates at the old position. Null while a
+       * transition runs: its segments already are the old text.
+       */
+      val node: RenderNode?,
       /** Rect of every segment, in view coordinates at the old position. */
       val segmentRects: Map<IntRange, RectF>,
       val left: Int,
@@ -65,7 +91,13 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       cancelTransition()
       return
     }
-    pendingChange = captureOldText(oldLayout)
+    pendingChange =
+        if (transition?.hasSegments == true) {
+          // Retargeting: the segments on screen are the old text; skip re-recording it.
+          OldText(oldLayout.text.toString(), oldLayout.lineCount, null, emptyMap(), left, top)
+        } else {
+          captureOldText(oldLayout)
+        }
   }
 
   @RequiresApi(Build.VERSION_CODES.Q)
@@ -81,7 +113,9 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
     recording.translate(originX, originY)
     oldLayout.draw(recording)
     node.endRecording()
-    val rects = TextTransitionPlan.segmentRanges(text).associateWith { range -> textRect(oldLayout, originX, originY, range) }
+    // Rects of the segments a plan can refer to: this unit's, plus the whole text (fallbacks).
+    val ranges = TextTransitionPlan.segmentRanges(text, transitionUnit) + listOfNotNull(text.indices.takeIf { text.isNotEmpty() })
+    val rects = ranges.associateWith { range -> textRect(oldLayout, originX, originY, range) }
     return OldText(text, oldLayout.lineCount, node, rects, left, top)
   }
 
@@ -133,13 +167,15 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
     val needsWholeText =
         isFontSizeAdjustedToFit ||
             maxLineCount > 0 ||
-            (mode == TextTransitionMode.NUMERIC && (old.lineCount > 1 || newLayout.lineCount > 1))
+            (mode == TextTransitionMode.NUMERIC &&
+                transitionUnit != TextTransitionUnit.WHOLE &&
+                (old.lineCount > 1 || newLayout.lineCount > 1))
     val plan =
         if (needsWholeText) {
           mode = TextTransitionMode.FADE
           TextTransitionPlan.wholeText(old.text, newText)
         } else {
-          TextTransitionPlan.plan(old.text, newText, mode, transitionDirection)
+          TextTransitionPlan.plan(old.text, newText, mode, transitionDirection, transitionUnit)
         }
     val current = transition ?: Transition().also { transition = it }
     // A change mid-transition retargets from what is on screen.
@@ -170,7 +206,11 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       /** Range in the text this segment belongs to. */
       var range: IntRange,
       val maxBlur: Float,
+      /** The glyphs and colour drawn; equal ones can reuse the node. */
+      val text: String,
+      val color: Int,
   ) {
+    var isHurrying = false
     /** Moves the recorded node to its current rest position. */
     var shiftX = 0f
     var shiftY = 0f
@@ -210,6 +250,9 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
   private inner class Transition {
     /** Segments of the latest text, settling into place. */
     private var current = mutableListOf<Segment>()
+
+    val hasSegments: Boolean
+      get() = current.isNotEmpty()
     /** Segments of earlier text, on their way out. */
     private val leaving = mutableListOf<Segment>()
     private val density = resources.displayMetrics.density
@@ -226,11 +269,23 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       val viewOffsetY = (old.top - top).toFloat()
       for (segment in current + leaving) segment.shift(viewOffsetX, viewOffsetY)
 
-      // Earlier text that is still leaving hurries out, so fast changes don't smear.
-      for (segment in leaving) {
+      // Earlier text that is still leaving hurries out, once: restarting the hurry on every
+      // change would keep it on screen forever while changes arrive every frame.
+      val iterator = leaving.iterator()
+      while (iterator.hasNext()) {
+        val segment = iterator.next()
         val look = segment.lookAt(now)
-        segment.drift *= TextTransitionTiming.HURRY_DRIFT_FACTOR
-        segment.start(Role.LEAVE, look, now, TextTransitionTiming.HURRY_DURATION)
+        if (now >= segment.endMs || look.opacity <= INVISIBLE_OPACITY) {
+          iterator.remove()
+          continue
+        }
+        if (!segment.isHurrying) {
+          segment.isHurrying = true
+          // Gone within the hurry; blurring it costs a GPU pass per frame for nothing.
+          segment.hasBlur = false
+          segment.drift *= TextTransitionTiming.HURRY_DRIFT_FACTOR
+          segment.start(Role.LEAVE, look.copy(blur = 0f), now, TextTransitionTiming.HURRY_DURATION)
+        }
       }
 
       val byRange = current.associateBy { it.range }.toMutableMap()
@@ -243,16 +298,19 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
                     ?: RectF(0f, 0f, width.toFloat(), height.toFloat()))
         rect.offset(viewOffsetX, viewOffsetY)
         val wholeText = range.first == 0 && range.last + 1 == old.text.length
-        return record(rect, range, motion, wholeText) { recording ->
+        val text = if (range.last < old.text.length) old.text.substring(range) else ""
+        return record(rect, range, motion, wholeText, text) { recording ->
+          val oldNode = old.node ?: return@record
           recording.translate(viewOffsetX, viewOffsetY)
-          recording.drawRenderNode(old.node)
+          recording.drawRenderNode(oldNode)
         }
       }
 
       fun newSegment(range: IntRange): Segment {
         val rect = textRect(newLayout, newOriginX, newOriginY, range)
         val wholeText = range.first == 0 && range.last + 1 == newLayout.text.length
-        return record(rect, range, motion, wholeText) { recording ->
+        val text = newLayout.text.substring(range.first, range.last + 1)
+        return record(rect, range, motion, wholeText, text) { recording ->
           applyTextPaintState()
           recording.translate(newOriginX, newOriginY)
           newLayout.draw(recording)
@@ -264,6 +322,7 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
         segment.drift = -direction * segment.restRect.height() * motion.offsetFactor
         segment.minScale = motion.minScale
         segment.hasBlur = segment.maxBlur > 0 && motion.hasBlur
+        segment.isHurrying = false
         segment.start(Role.LEAVE, look, now, duration)
         leaving.add(segment)
       }
@@ -272,14 +331,35 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       for (op in plan.ops) {
         when (op.change) {
           SegmentChange.KEPT -> {
-            // Always drawn from the new text (same glyphs, current colour), starting from
-            // wherever the old piece is now.
             val existing = byRange.remove(op.oldRange!!)
+            val newRect = textRect(newLayout, newOriginX, newOriginY, op.newRange!!)
+            val newText = newLayout.text.substring(op.newRange.first, op.newRange.last + 1)
+            if (existing != null && existing.text == newText && existing.color == currentTextColor) {
+              // Same glyphs and colour: keep the node, move it to the new rest position.
+              val look = existing.lookAt(now)
+              val deltaX = existing.restRect.left - newRect.left
+              val deltaY = existing.restRect.top - newRect.top
+              existing.range = op.newRange
+              if (abs(deltaX) > 0.001f || abs(deltaY) > 0.001f) {
+                existing.shift(-deltaX, -deltaY)
+                existing.start(
+                    Role.SETTLE,
+                    look.copy(translateX = look.translateX + deltaX, translateY = look.translateY + deltaY),
+                    now,
+                    duration)
+              } else if (existing.role != Role.SETTLE) {
+                existing.start(Role.SETTLE, look, now, duration)
+              }
+              settling.add(existing)
+              continue
+            }
+            // Different glyphs or colour: redraw from the new text, starting from wherever the
+            // old piece is now.
             val look = existing?.lookAt(now) ?: SegmentLook()
             val oldRect =
                 existing?.restRect
                     ?: RectF(old.segmentRects[op.oldRange] ?: RectF()).apply { offset(viewOffsetX, viewOffsetY) }
-            val segment = newSegment(op.newRange!!)
+            val segment = newSegment(op.newRange)
             segment.start(
                 Role.SETTLE,
                 look.copy(
@@ -314,6 +394,9 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       byRange.values.forEach { leave(it) }
       current = settling
       leaving.removeAll { now >= it.endMs }
+      // Bound the leaving pile: the oldest are the most faded.
+      val maxLeaving = maxOf(MIN_MAX_LEAVING, MAX_LEAVING_PER_SEGMENT * current.size)
+      while (leaving.size > maxLeaving) leaving.removeAt(0)
       invalidate()
     }
 
@@ -324,22 +407,23 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       val isActive = leaving.isNotEmpty() || current.any { now < it.endMs }
       // Once settled, RN's own text drawing takes over (identical to <Text>).
       if (!isActive) return false
-      for (segment in leaving + current) {
-        val look = segment.lookAt(now)
-        val node = segment.node
-        node.translationX = segment.shiftX + look.translateX
-        node.translationY = segment.shiftY + look.translateY
-        node.scaleX = look.scale
-        node.scaleY = look.scale
-        node.alpha = look.opacity
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-          val radius = look.blur * segment.maxBlur
-          node.setRenderEffect(
-              if (radius > 0.01f) RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.DECAL) else null)
-        }
-        canvas.drawRenderNode(node)
-      }
+      for (segment in leaving) drawSegment(canvas, segment, now)
+      for (segment in current) drawSegment(canvas, segment, now)
       return true
+    }
+
+    private fun drawSegment(canvas: Canvas, segment: Segment, now: Long) {
+      val look = segment.lookAt(now)
+      val node = segment.node
+      node.translationX = segment.shiftX + look.translateX
+      node.translationY = segment.shiftY + look.translateY
+      node.scaleX = look.scale
+      node.scaleY = look.scale
+      node.alpha = look.opacity
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        node.setRenderEffect(if (segment.hasBlur || segment.role == Role.SETTLE) blurEffect(look.blur * segment.maxBlur) else null)
+      }
+      canvas.drawRenderNode(node)
     }
 
     /**
@@ -352,6 +436,7 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
         range: IntRange,
         motion: SegmentMotion,
         wholeText: Boolean,
+        text: String,
         draw: (Canvas) -> Unit,
     ): Segment {
       val maxBlur = if (motion.hasBlur) min(10f * density, max(2f * density, rect.height() * 0.15f)) else 0f
@@ -371,7 +456,7 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       }
       draw(recording)
       node.endRecording()
-      return Segment(node, RectF(rect), range, maxBlur).also { it.hasBlur = maxBlur > 0 }
+      return Segment(node, RectF(rect), range, maxBlur, text, currentTextColor).also { it.hasBlur = maxBlur > 0 }
     }
   }
 }

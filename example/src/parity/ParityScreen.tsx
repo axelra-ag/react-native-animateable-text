@@ -43,7 +43,10 @@ function TransitionedText({ item, style }: { item: ParityCase; style: ParityCase
     const timer = setTimeout(() => setText(item.text), TRANSITION_START_MS);
     return () => clearTimeout(timer);
   }, [item.text]);
-  return <AnimateableText style={style} {...item.props} text={text} contentTransition={item.transition?.type} />;
+  return <AnimateableText style={style} {...item.props} text={text} contentTransition={
+        item.transition ? { type: item.transition.type, unit: item.transition.unit } : undefined
+      }
+    />;
 }
 
 function ParityRow({

@@ -46,14 +46,25 @@ bool isJoiningLetter(unichar c)
       (c >= 0x08A0 && c <= 0x08FF) || (c >= 0xFB50 && c <= 0xFDFF) || (c >= 0xFE70 && c <= 0xFEFF);
 }
 
-std::vector<Segment> segmentText(NSString *text)
+bool isWhitespace(unichar c)
+{
+  return [[NSCharacterSet whitespaceAndNewlineCharacterSet] characterIsMember:c];
+}
+
+std::vector<Segment> segmentText(NSString *text, JBTextTransitionUnit unit)
 {
   __block std::vector<Segment> segments;
+  if (unit == JBTextTransitionUnitWhole) {
+    if (text.length > 0) segments.push_back({NSMakeRange(0, text.length), text});
+    return segments;
+  }
   __block bool previousJoins = false;
   [text enumerateSubstringsInRange:NSMakeRange(0, text.length)
                            options:NSStringEnumerationByComposedCharacterSequences
                         usingBlock:^(NSString *grapheme, NSRange range, NSRange, BOOL *) {
-                          bool joins = isJoiningLetter([grapheme characterAtIndex:0]);
+                          unichar first = [grapheme characterAtIndex:0];
+                          // Auto: joining letters group. Word: everything but whitespace groups.
+                          bool joins = unit == JBTextTransitionUnitWord ? !isWhitespace(first) : isJoiningLetter(first);
                           if (joins && previousJoins && !segments.empty()) {
                             Segment &last = segments.back();
                             last.range.length = NSMaxRange(range) - last.range.location;
@@ -227,14 +238,26 @@ const size_t kMaxLcsSegments = 400;
   return JBTextTransitionModeNone;
 }
 
++ (JBTextTransitionUnit)unitFromString:(NSString *)value
+{
+  if ([value isEqualToString:@"word"]) return JBTextTransitionUnitWord;
+  if ([value isEqualToString:@"whole"]) return JBTextTransitionUnitWhole;
+  return JBTextTransitionUnitAuto;
+}
+
 + (instancetype)planFromText:(NSString *)oldText
                       toText:(NSString *)newText
                         mode:(JBTextTransitionMode)mode
                    direction:(NSString *)direction
+                        unit:(JBTextTransitionUnit)unit
 {
-  std::vector<Segment> oldSegments = segmentText(oldText);
-  std::vector<Segment> newSegments = segmentText(newText);
+  std::vector<Segment> oldSegments = segmentText(oldText, unit);
+  std::vector<Segment> newSegments = segmentText(newText, unit);
   NSInteger resolvedDirection = resolveDirection(oldText, newText, direction);
+  if (unit == JBTextTransitionUnitWhole) {
+    JBTextTransitionPlan *plan = [self wholeTextPlanFromText:oldText toText:newText];
+    return [[self alloc] initWithOps:plan.ops direction:resolvedDirection];
+  }
   if (mode == JBTextTransitionModeNumeric) {
     return [[self alloc] initWithOps:numericOps(oldSegments, newSegments) direction:resolvedDirection];
   }

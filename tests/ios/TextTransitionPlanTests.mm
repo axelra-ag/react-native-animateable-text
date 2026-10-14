@@ -21,10 +21,14 @@ int main(int argc, const char *argv[])
       NSArray<NSString *> *columns = [line componentsSeparatedByString:@"\t"];
       NSString *oldText = fromFixture(columns[2]);
       NSString *newText = fromFixture(columns[3]);
+      // Mode column: "mode" or "mode:unit".
+      NSArray<NSString *> *modeAndUnit = [columns[0] componentsSeparatedByString:@":"];
+      NSString *unit = modeAndUnit.count > 1 ? modeAndUnit[1] : @"auto";
       JBTextTransitionPlan *plan = [JBTextTransitionPlan planFromText:oldText
                                                                toText:newText
-                                                                 mode:[JBTextTransitionPlan modeFromString:columns[0]]
-                                                            direction:columns[1]];
+                                                                 mode:[JBTextTransitionPlan modeFromString:modeAndUnit[0]]
+                                                            direction:columns[1]
+                                                                 unit:[JBTextTransitionPlan unitFromString:unit]];
       NSString *direction = plan.direction > 0 ? @"up" : @"down";
       NSString *ops = [plan fixtureDescriptionWithOldText:oldText newText:newText];
       total++;

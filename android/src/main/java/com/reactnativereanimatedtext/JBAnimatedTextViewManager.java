@@ -63,6 +63,13 @@ public class JBAnimatedTextViewManager extends ReactTextViewManager {
     }
   }
 
+  @ReactProp(name = "contentTransitionUnit")
+  public void setContentTransitionUnit(ReactTextView view, @Nullable String unit) {
+    if (view instanceof JBAnimatedTextView) {
+      ((JBAnimatedTextView) view).setTransitionUnit(TextTransitionUnit.Companion.fromString(unit));
+    }
+  }
+
   @ReactProp(name = "contentTransitionDirection")
   public void setContentTransitionDirection(ReactTextView view, @Nullable String direction) {
     if (view instanceof JBAnimatedTextView) {

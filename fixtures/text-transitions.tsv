@@ -1,5 +1,6 @@
 # Shared fixtures for the text transition plan (iOS JBTextTransitionPlan, Android TextTransitionPlan).
-# Columns (tab-separated): mode, direction option, old text, new text, expected direction (up|down), expected ops.
+# Columns (tab-separated): mode[:unit], direction option, old text, new text, expected direction (up|down), expected ops.
+# Unit is auto (default), word or whole.
 # Ops in logical order: =kept -removed +inserted. A space inside a segment is written as ␠. Empty text is written as ∅.
 numeric	auto	1,204.50	1,205.00	up	=1 =, =2 =0 -4 +5 =. -5 +0 =0
 numeric	auto	999	1,000	up	+1 +, -9 +0 -9 +0 -9 +0
@@ -20,3 +21,12 @@ fade	auto	abc	abd	up	=a =b -c +d
 blur	auto	a👍🏽b	a👍b	up	=a -👍🏽 +👍 =b
 blur	auto	a👨‍👩‍👧b	a👨‍👩‍👦b	up	=a -👨‍👩‍👧 +👨‍👩‍👦 =b
 blur	auto	🇸🇦🇺🇸	🇸🇦	up	=🇸🇦 -🇺🇸
+blur:word	auto	Hello world	Hello there	up	=Hello =␠ -world +there
+blur:word	auto	Pending payment	Pending transfer	up	=Pending =␠ -payment +transfer
+numeric:word	auto	SAR 1,204.50	SAR 1,205.50	up	=SAR =␠ -1,204.50 +1,205.50
+blur:word	auto	قيد الانتظار	قيد المعالجة	up	=قيد =␠ -الانتظار +المعالجة
+blur:word	auto	a  b	a b	up	=a =␠ -␠ =b
+blur:whole	auto	Hello world	Hello there	up	-Hello␠world +Hello␠there
+numeric:whole	auto	5	3	down	-5 +3
+numeric:whole	auto	SAR 9.99	SAR 10.00	up	-SAR␠9.99 +SAR␠10.00
+fade:whole	auto	∅	New	up	+New

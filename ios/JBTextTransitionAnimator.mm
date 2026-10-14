@@ -39,6 +39,14 @@ const CGFloat kHurryDuration = 0.15; // segments already leaving when a new chan
 const CGFloat kHurryDriftFactor = 0.25;
 const CGFloat kFramesPerSecond = 60;
 const int kBlurLevels = 4;
+// Leaving segments a text keeps at most; the oldest go first. Bounds work and memory when
+// changes arrive every frame (scrubbing).
+const NSUInteger kMaxLeavingPerSegment = 2;
+const NSUInteger kMinMaxLeaving = 8;
+const CGFloat kInvisibleOpacity = 0.01;
+// Image caches, bounded by bytes. Entries are evicted LRU-ish by NSCache.
+const NSUInteger kSharpCacheBytes = 6 * 1024 * 1024;
+const NSUInteger kBlurCacheBytes = 6 * 1024 * 1024;
 
 struct Look {
   CGFloat translateX = 0;
@@ -111,6 +119,12 @@ Look settleLook(const Look &from, CGFloat p)
   look.opacity = from.opacity + (1 - from.opacity) * clamp01(p / 0.6);
   look.blur = from.blur * (1 - clamp01(p / 0.8));
   return look;
+}
+
+bool isRestLook(const Look &look)
+{
+  return std::fabs(look.translateX) < 0.01 && std::fabs(look.translateY) < 0.01 && std::fabs(look.scale - 1) < 0.001 &&
+      std::fabs(look.opacity - 1) < 0.001 && look.blur < 0.001;
 }
 
 CATransform3D transformFor(const Look &look)
@@ -212,25 +226,45 @@ NSArray *createBlurLevels(CGImageRef source, CGFloat maxSigma, int levels)
   return images;
 }
 
+NSCache *costCache(NSUInteger bytes)
+{
+  NSCache *cache = [NSCache new];
+  cache.totalCostLimit = bytes;
+  return cache;
+}
+
+NSCache<NSString *, id> *sharpCache()
+{
+  static NSCache *cache;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    cache = costCache(kSharpCacheBytes);
+  });
+  return cache;
+}
+
 NSCache<NSString *, NSArray *> *blurCache()
 {
   static NSCache *cache;
   static dispatch_once_t once;
   dispatch_once(&once, ^{
-    cache = [NSCache new];
-    cache.countLimit = 256;
+    cache = costCache(kBlurCacheBytes);
   });
   return cache;
 }
 
-// Everything that changes how a segment's blurred images look. Sub-pixel position is
-// left out on purpose: blurred levels are soft enough that it doesn't show.
-NSString *blurCacheKey(JBTextSnapshot *snapshot, NSRange range, CGSize canvasSize, CGFloat maxBlur, CGFloat scale)
+NSUInteger imageBytes(CGImageRef image)
+{
+  return CGImageGetBytesPerRow(image) * CGImageGetHeight(image);
+}
+
+// Everything about a segment's glyphs that changes how they are drawn.
+NSString *appearanceKey(JBTextSnapshot *snapshot, NSRange range)
 {
   NSDictionary<NSAttributedStringKey, id> *attributes = [snapshot.textStorage attributesAtIndex:range.location
                                                                                   effectiveRange:NULL];
   UIFont *font = attributes[NSFontAttributeName];
-  return [NSString stringWithFormat:@"%@|%@|%.2f|%@|%@|%@|%@|%@|%.0fx%.0f|%.2f|%.1f",
+  return [NSString stringWithFormat:@"%@|%@|%.2f|%@|%@|%@|%@|%@",
                                     [snapshot.string substringWithRange:range],
                                     font.fontName,
                                     font.pointSize,
@@ -238,11 +272,7 @@ NSString *blurCacheKey(JBTextSnapshot *snapshot, NSRange range, CGSize canvasSiz
                                     attributes[NSKernAttributeName],
                                     attributes[NSShadowAttributeName],
                                     attributes[NSUnderlineStyleAttributeName],
-                                    attributes[NSStrikethroughStyleAttributeName],
-                                    canvasSize.width * scale,
-                                    canvasSize.height * scale,
-                                    maxBlur,
-                                    scale];
+                                    attributes[NSStrikethroughStyleAttributeName]];
 }
 
 } // namespace
@@ -270,6 +300,11 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
 @property (nonatomic, assign) BOOL hasBlur;
 @property (nonatomic, assign) CFTimeInterval startTime;
 @property (nonatomic, assign) CGFloat duration;
+/// appearanceKey() of the drawn glyphs; equal keys can share images and layers.
+@property (nonatomic, copy) NSString *appearance;
+/// Set when the timeline changed and the layer's animations must be rebuilt.
+@property (nonatomic, assign) BOOL needsAnimation;
+@property (nonatomic, assign) BOOL isHurrying;
 @end
 
 @implementation JBTextSegment
@@ -297,10 +332,20 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
   _from = from;
   _startTime = time;
   _duration = duration;
+  _needsAnimation = YES;
 }
 
 - (void)applyAnimation
 {
+  _needsAnimation = NO;
+  if (_role == JBSegmentRoleSettle && isRestLook(_from)) {
+    // Already at rest: no animation, just the sharp glyphs.
+    [_layer removeAllAnimations];
+    _layer.transform = CATransform3DIdentity;
+    _layer.opacity = 1;
+    _layer.contents = _blurLevels.firstObject;
+    return;
+  }
   CGFloat total = self.totalTime;
   size_t frameCount = MAX((size_t)2, (size_t)std::ceil(total * kFramesPerSecond) + 1);
   NSMutableArray *transforms = [NSMutableArray arrayWithCapacity:frameCount];
@@ -383,21 +428,38 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
   JBTextSegment *segment = [JBTextSegment new];
   segment.restRect = textRectFor(snapshot, range);
   segment.range = range;
+  segment.appearance = appearanceKey(snapshot, range);
   CGFloat lineHeight = segment.restRect.size.height;
   CGFloat maxBlur = motion.hasBlur ? MIN(10, MAX(2, lineHeight * 0.15)) : 0;
   // Room for ink outside the line box (diacritics, italics) and for the blur.
   CGFloat padding = MAX(3 * maxBlur, 0.35 * lineHeight);
   CGRect canvas = pixelAligned(CGRectInset(segment.restRect, -padding, -padding), scale);
-  UIImage *sharp = renderImage(canvas, scale, ^{
-    drawGlyphs(snapshot, range);
-  });
-  NSMutableArray *levels = [NSMutableArray arrayWithObject:(__bridge id)sharp.CGImage];
+
+  // Same glyphs at the same sub-pixel offset in the same canvas draw identically.
+  NSString *sharpKey = [NSString stringWithFormat:@"%@|%.0fx%.0f|%.3f,%.3f|%.1f",
+                                                  segment.appearance,
+                                                  canvas.size.width * scale,
+                                                  canvas.size.height * scale,
+                                                  segment.restRect.origin.x - canvas.origin.x,
+                                                  segment.restRect.origin.y - canvas.origin.y,
+                                                  scale];
+  id sharp = [sharpCache() objectForKey:sharpKey];
+  if (!sharp) {
+    CGImageRef image = renderImage(canvas, scale, ^{
+                         drawGlyphs(snapshot, range);
+                       }).CGImage;
+    sharp = (__bridge id)image;
+    [sharpCache() setObject:sharp forKey:sharpKey cost:imageBytes(image)];
+  }
+  NSMutableArray *levels = [NSMutableArray arrayWithObject:sharp];
   if (motion.hasBlur) {
-    NSString *key = blurCacheKey(snapshot, range, canvas.size, maxBlur, scale);
-    NSArray *blurred = [blurCache() objectForKey:key];
+    NSString *blurKey = [NSString stringWithFormat:@"%@|%.2f", sharpKey, maxBlur];
+    NSArray *blurred = [blurCache() objectForKey:blurKey];
     if (!blurred) {
-      blurred = createBlurLevels(sharp.CGImage, maxBlur * scale, kBlurLevels);
-      [blurCache() setObject:blurred forKey:key];
+      blurred = createBlurLevels((__bridge CGImageRef)sharp, maxBlur * scale, kBlurLevels);
+      NSUInteger bytes = 0;
+      for (id image in blurred) bytes += imageBytes((__bridge CGImageRef)image);
+      [blurCache() setObject:blurred forKey:blurKey cost:bytes];
     }
     [levels addObjectsFromArray:blurred];
   }
@@ -423,6 +485,7 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
   segment.drift = -direction * segment.restRect.size.height * motion.offsetFactor;
   segment.minScale = motion.minScale;
   segment.hasBlur = segment.hasBlur && motion.hasBlur;
+  segment.isHurrying = NO;
   [segment startRole:JBSegmentRoleLeave from:from at:now duration:duration];
   [_leaving addObject:segment];
 }
@@ -457,11 +520,20 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
   }
   _container.frame = bounds;
 
-  // Earlier text that is still leaving hurries out, so fast changes don't smear.
-  for (JBTextSegment *segment in _leaving) {
+  // Earlier text that is still leaving hurries out, once: restarting the hurry on every
+  // change would keep it on screen forever while changes arrive every frame.
+  for (JBTextSegment *segment in [_leaving copy]) {
     Look current = [segment lookAt:now];
-    segment.drift = segment.drift * kHurryDriftFactor;
-    [segment startRole:JBSegmentRoleLeave from:current at:now duration:kHurryDuration];
+    if (segment.endTime <= now || current.opacity <= kInvisibleOpacity) {
+      [segment.layer removeFromSuperlayer];
+      [_leaving removeObject:segment];
+      continue;
+    }
+    if (!segment.isHurrying) {
+      segment.isHurrying = YES;
+      segment.drift = segment.drift * kHurryDriftFactor;
+      [segment startRole:JBSegmentRoleLeave from:current at:now duration:kHurryDuration];
+    }
   }
 
   NSMutableDictionary<NSValue *, JBTextSegment *> *byRange = [NSMutableDictionary dictionary];
@@ -473,19 +545,41 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
   for (JBTextTransitionOp *op in plan.ops) {
     switch (op.change) {
       case JBTextSegmentChangeKept: {
-        // Always drawn from the new text (same glyphs, current colour), starting from
-        // wherever the old piece is now.
         NSValue *key = [NSValue valueWithRange:op.oldRange];
         JBTextSegment *existing = byRange[key];
-        Look current;
-        CGRect oldRect;
+        CGRect newRect = textRectFor(to, op.newRange);
         if (existing) {
           [byRange removeObjectForKey:key];
+          CGFloat deltaX = existing.restRect.origin.x - newRect.origin.x;
+          CGFloat deltaY = existing.restRect.origin.y - newRect.origin.y;
+          BOOL isPixelShift = std::fabs(deltaX * scale - std::round(deltaX * scale)) < 0.01 &&
+              std::fabs(deltaY * scale - std::round(deltaY * scale)) < 0.01;
+          if ([existing.appearance isEqualToString:appearanceKey(to, op.newRange)] && isPixelShift) {
+            // Same glyphs: keep the layer and its images, move it to the new rest position.
+            Look current = [existing lookAt:now];
+            existing.range = op.newRange;
+            if (std::fabs(deltaX) > 0.001 || std::fabs(deltaY) > 0.001) {
+              CGPoint position = existing.layer.position;
+              existing.layer.position = CGPointMake(position.x - deltaX, position.y - deltaY);
+              existing.restRect = newRect;
+              current.translateX += deltaX;
+              current.translateY += deltaY;
+              [existing startRole:JBSegmentRoleSettle from:current at:now duration:duration];
+            } else if (existing.role != JBSegmentRoleSettle) {
+              [existing startRole:JBSegmentRoleSettle from:current at:now duration:duration];
+            }
+            [settling addObject:existing];
+            break;
+          }
+        }
+        // Different glyphs or style (e.g. colour), or a sub-pixel move: redraw from the new
+        // text, starting from wherever the old piece is now.
+        Look current;
+        CGRect oldRect = textRectFor(from, op.oldRange);
+        if (existing) {
           current = [existing lookAt:now];
           oldRect = existing.restRect;
           [existing.layer removeFromSuperlayer];
-        } else {
-          oldRect = textRectFor(from, op.oldRange);
         }
         JBTextSegment *segment = [self segmentFor:to range:op.newRange motion:motion scale:scale];
         current.translateX += oldRect.origin.x - segment.restRect.origin.x;
@@ -528,16 +622,17 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
   }
   _current = settling;
 
-  // Drop segments that have finished leaving; animate the rest.
-  CFTimeInterval endTime = now;
-  for (JBTextSegment *segment in [_leaving copy]) {
-    if (segment.endTime <= now) {
-      [segment.layer removeFromSuperlayer];
-      [_leaving removeObject:segment];
-    }
+  // Bound the leaving pile: the oldest are the most faded.
+  NSUInteger maxLeaving = MAX(kMinMaxLeaving, kMaxLeavingPerSegment * _current.count);
+  while (_leaving.count > maxLeaving) {
+    [_leaving.firstObject.layer removeFromSuperlayer];
+    [_leaving removeObjectAtIndex:0];
   }
+
+  // Only segments whose timeline changed get new animations.
+  CFTimeInterval endTime = now;
   for (JBTextSegment *segment in [_current arrayByAddingObjectsFromArray:_leaving]) {
-    [segment applyAnimation];
+    if (segment.needsAnimation) [segment applyAnimation];
     endTime = MAX(endTime, segment.endTime);
   }
 

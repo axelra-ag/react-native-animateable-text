@@ -48,6 +48,15 @@ CParagraphProps::CParagraphProps( // EDITED
                     rawProps,
                     "contentTransitionDirection",
                     sourceProps.contentTransitionDirection,
+                    {"auto"})),
+      contentTransitionUnit(
+          ReactNativeFeatureFlags::enableCppPropsIteratorSetter()
+              ? sourceProps.contentTransitionUnit
+              : convertRawProp(
+                    context,
+                    rawProps,
+                    "contentTransitionUnit",
+                    sourceProps.contentTransitionUnit,
                     {"auto"}))
 // END ADDED
 {};
@@ -70,6 +79,7 @@ void CParagraphProps::setProp( // EDITED
     RAW_SET_PROP_SWITCH_CASE_BASIC(contentTransitionType);
     RAW_SET_PROP_SWITCH_CASE_BASIC(contentTransitionDuration);
     RAW_SET_PROP_SWITCH_CASE_BASIC(contentTransitionDirection);
+    RAW_SET_PROP_SWITCH_CASE_BASIC(contentTransitionUnit);
   }
   // END ADDED
 }
@@ -97,6 +107,9 @@ folly::dynamic CParagraphProps::getDiffProps(const Props* prevProps) const { // 
   }
   if (contentTransitionDirection != oldProps->contentTransitionDirection) {
     result["contentTransitionDirection"] = contentTransitionDirection;
+  }
+  if (contentTransitionUnit != oldProps->contentTransitionUnit) {
+    result["contentTransitionUnit"] = contentTransitionUnit;
   }
   // END ADDED
 

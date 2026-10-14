@@ -19,10 +19,10 @@ touching transition code and update it when a decision changes.
 
 ### Content transitions
 
-`contentTransition` (`numeric` / `blur` / `fade`, optional `duration` ms and `direction`) is
-normalised in JS into three flat native props (`contentTransitionType`,
-`contentTransitionDuration`, `contentTransitionDirection`), parsed in `CParagraphProps` (iOS)
-and `@ReactProp` setters (Android).
+`contentTransition` (`numeric` / `blur` / `fade`, optional `duration` ms, `direction`, and
+`unit`: `auto` / `word` / `whole`) is normalised in JS into four flat native props
+(`contentTransitionType`, `contentTransitionDuration`, `contentTransitionDirection`,
+`contentTransitionUnit`), parsed in `CParagraphProps` (iOS) and `@ReactProp` setters (Android).
 
 | Piece | iOS | Android |
 |---|---|---|
@@ -43,6 +43,10 @@ Rules:
   category, guarded with `respondsToSelector:`). Never re-lay out text yourself.
 - **Changes mid-transition retarget, never snap.** Segments keep their own timelines (settle /
   leave from their current look); test with the slider demo after touching the animators.
+- **Changes every frame must stay bounded.** Leaving segments hurry out once and are capped;
+  unchanged segments are reused. After touching the animators, run the example's "Stress: 4
+  texts every frame" card for 30 s with `blur` and check memory stays flat (iOS:
+  `ps -o rss= -p <pid>`; Android: `dumpsys meminfo` + `dumpsys gfxinfo`) and close to `none`.
 - **Android must capture the old text before RN updates it.** `TextView` reuses its
   `BoringLayout` for single-line text, so a kept reference to the old `Layout` shows the new text.
 - Design notes, numbers, and known limitations: `docs/text-transitions-plan.md`.
@@ -107,8 +111,8 @@ Sections (home screen, or deep link `animateabletext://<route>`):
 | Route | Screen | Purpose |
 |---|---|---|
 | `home` | Sections list | |
-| `animated` | Animated text | Everything in one screen. A settings card (contentTransition `none`/`numeric`/`blur`/`fade`, direction, duration, font: System or Malaa's IBM Plex Sans Arabic) applies to every demo: original slider, balance (Latin + Arabic-Indic), percentage slider with colour (red/grey/green), centred number between boxes (bounds tint + optional Reanimated `LinearTransition` on the row), count-up and stopwatch (every-frame updates), words (Latin + Arabic), multi-line with `numberOfLines`. `transitions` is an alias. |
-| `parity` | Parity | `<Text>` vs `<AnimateableText>` side by side (24 cases). Query: `page`, `pageSize`, `perturb=1`, `autoAdvanceMs`, `runId`. |
+| `animated` | Animated text | Everything in one screen. A settings card (contentTransition `none`/`numeric`/`blur`/`fade`, direction, unit `auto`/`word`/`whole`, duration, font: System or Malaa's IBM Plex Sans Arabic) applies to every demo: original slider, balance (Latin + Arabic-Indic), percentage slider with colour (red/grey/green), centred number between boxes (bounds tint + optional Reanimated `LinearTransition` on the row), count-up and stopwatch (every-frame updates), words (Latin + Arabic), multi-line with `numberOfLines`. `transitions` is an alias. |
+| `parity` | Parity | `<Text>` vs `<AnimateableText>` side by side (25 cases). Query: `page`, `pageSize`, `perturb=1`, `autoAdvanceMs`, `runId`. |
 
 How it is wired:
 
@@ -207,8 +211,8 @@ xcrun simctl ui <udid> content_size large
 adb -s <serial> shell settings put system font_scale 1.0
 ```
 
-Expected now: 24/24 identical on iOS and Android (21/21 at the largest size before the
-`transition-*` cases were added); self-test 24/24 detected. Pages with `transition-*` cases
+Expected now: 25/25 identical on iOS and Android (21/21 at the largest size before the
+`transition-*` cases were added); self-test 25/25 detected. Pages with `transition-*` cases
 wait 1.6 s before measuring so the transition has settled. A rare Android run times out
 waiting for page 0; rerun it.
 
@@ -228,7 +232,7 @@ ANDROID_HOME=$HOME/Library/Android/sdk scripts/test-transition-plan.sh --android
 iOS compiles `ios/JBTextTransitionPlan.mm` with `tests/ios/TextTransitionPlanTests.mm` for
 macOS; Android runs `android/src/test/.../TextTransitionPlanTest.kt` through the example's
 Gradle (`:react-native-animateable-text:testDebugUnitTest`). Both read
-`fixtures/text-transitions.tsv`: mode, direction option, old, new, expected direction,
+`fixtures/text-transitions.tsv`: mode (or `mode:unit`), direction option, old, new, expected direction,
 expected ops (`=kept -removed +inserted`, `␠` for a space, `∅` for empty text).
 
 ## Seeing an animation frame by frame

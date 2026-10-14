@@ -25,6 +25,7 @@ import {
   FONTS,
   SettingsProvider,
   TRANSITIONS,
+  UNITS,
   useContentTransition,
   useFont,
   type Settings,
@@ -54,7 +55,7 @@ function SettingsCard({ settings, onChange }: { settings: Settings; onChange: (s
   return (
     <DemoCard
       title="Settings"
-      description="Applied to every demo. Transition 'none' is the plain animated text (no content transition)."
+      description="Applied to every demo. Transition 'none' is the plain animated text (no content transition). Unit: 'auto' animates only what changed, 'word' whole words, 'whole' the entire text."
     >
       <SettingRow label="contentTransition">
         <Segmented
@@ -69,6 +70,9 @@ function SettingsCard({ settings, onChange }: { settings: Settings; onChange: (s
           value={settings.direction}
           onChange={(direction) => onChange({ ...settings, direction })}
         />
+      </SettingRow>
+      <SettingRow label="unit (what animates as one piece)">
+        <Segmented options={UNITS} value={settings.unit} onChange={(unit) => onChange({ ...settings, unit })} />
       </SettingRow>
       <SettingRow label="duration">
         <Segmented
@@ -86,6 +90,47 @@ function SettingsCard({ settings, onChange }: { settings: Settings; onChange: (s
           format={(value) => FONT_LABELS[value]}
         />
       </SettingRow>
+    </DemoCard>
+  );
+}
+
+const STRESS_TEXT_COUNT = 4;
+
+function StressText({ index, phase }: { index: number; phase: { value: number } }) {
+  const animatedProps = useAnimatedProps(() => {
+    const value = 50000 + 45000 * Math.sin(phase.value * (1 + index * 0.37) + index);
+    return { text: `SAR ${formatAmount(value)}` };
+  });
+  return (
+    <AnimateableText
+      style={[useFont(700), { fontSize: 22, color: colors.text, fontVariant: ['tabular-nums'] }]}
+      animatedProps={animatedProps}
+      contentTransition={useContentTransition()}
+    />
+  );
+}
+
+function StressDemo() {
+  const phase = useSharedValue(0);
+  const frameCallback = useFrameCallback((frame) => {
+    phase.value += (frame.timeSincePreviousFrame ?? 16) / 1000;
+  }, false);
+  const [isRunning, setIsRunning] = React.useState(false);
+  const handleToggle = () => {
+    frameCallback.setActive(!isRunning);
+    setIsRunning(!isRunning);
+  };
+  return (
+    <DemoCard
+      title="Stress: 4 texts every frame"
+      description="Like scrubbing a chart: every text changes on every frame. Memory and frame rate must stay flat however long it runs."
+    >
+      {Array.from({ length: STRESS_TEXT_COUNT }, (_, index) => (
+        <StressText key={index} index={index} phase={phase} />
+      ))}
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Button title={isRunning ? 'Stop' : 'Start'} onPress={handleToggle} />
+      </View>
     </DemoCard>
   );
 }
@@ -392,6 +437,7 @@ export function AnimatedTextScreen({ onBack }: { onBack: () => void }) {
         <ScreenHeader title="Animated text" onBack={onBack} />
         <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: 48, gap: 16 }}>
           <SettingsCard settings={settings} onChange={setSettings} />
+          <StressDemo />
           <SliderDemo />
           <BalanceDemo />
           <PercentageDemo />

@@ -37,6 +37,7 @@ const viewConfig = {
     contentTransitionType: true,
     contentTransitionDuration: true,
     contentTransitionDirection: true,
+    contentTransitionUnit: true,
   },
   directEventTypes: {
     topTextLayout: { registrationName: "onTextLayout" },
@@ -52,6 +53,7 @@ const toNativeTransitionProps = (transition: ContentTransition | undefined) => {
     contentTransitionType: options.type,
     contentTransitionDuration: options.duration ?? 0,
     contentTransitionDirection: options.direction ?? "auto",
+    contentTransitionUnit: options.unit ?? "auto",
   };
 };
 

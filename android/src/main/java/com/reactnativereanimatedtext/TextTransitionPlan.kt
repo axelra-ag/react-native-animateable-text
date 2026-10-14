@@ -26,6 +26,25 @@ enum class TextTransitionMode {
   }
 }
 
+/** What animates as one piece. */
+enum class TextTransitionUnit {
+  /** Graphemes; joining scripts (Arabic) grouped into words. */
+  AUTO,
+  /** Whitespace-separated words, every script. */
+  WORD,
+  /** The entire text. */
+  WHOLE;
+
+  companion object {
+    fun fromString(value: String?): TextTransitionUnit =
+        when (value) {
+          "word" -> WORD
+          "whole" -> WHOLE
+          else -> AUTO
+        }
+  }
+}
+
 enum class SegmentChange {
   KEPT,
   REMOVED,
@@ -59,10 +78,19 @@ class TextTransitionPlan(
   companion object {
     private const val MAX_LCS_SEGMENTS = 400
 
-    fun plan(oldText: String, newText: String, mode: TextTransitionMode, direction: String?): TextTransitionPlan {
-      val oldSegments = segmentText(oldText)
-      val newSegments = segmentText(newText)
+    fun plan(
+        oldText: String,
+        newText: String,
+        mode: TextTransitionMode,
+        direction: String?,
+        unit: TextTransitionUnit = TextTransitionUnit.AUTO,
+    ): TextTransitionPlan {
+      val oldSegments = segmentText(oldText, unit)
+      val newSegments = segmentText(newText, unit)
       val resolvedDirection = resolveDirection(oldText, newText, direction)
+      if (unit == TextTransitionUnit.WHOLE) {
+        return TextTransitionPlan(wholeText(oldText, newText).ops, resolvedDirection)
+      }
       if (mode == TextTransitionMode.NUMERIC) {
         return TextTransitionPlan(numericOps(oldSegments, newSegments), resolvedDirection)
       }
@@ -73,7 +101,8 @@ class TextTransitionPlan(
     }
 
     /** The segments [plan] works with, as [start, end) ranges. */
-    fun segmentRanges(text: String): List<IntRange> = segmentText(text).map { it.range }
+    fun segmentRanges(text: String, unit: TextTransitionUnit = TextTransitionUnit.AUTO): List<IntRange> =
+        segmentText(text, unit).map { it.range }
 
     /** Whole-text cross-fade: one REMOVED op for the old text, one INSERTED for the new. */
     fun wholeText(oldText: String, newText: String): TextTransitionPlan {
@@ -135,13 +164,17 @@ private fun graphemeRanges(text: String): List<IntRange> {
   return ranges
 }
 
-private fun segmentText(text: String): List<Segment> {
+private fun segmentText(text: String, unit: TextTransitionUnit): List<Segment> {
+  if (unit == TextTransitionUnit.WHOLE) {
+    return if (text.isEmpty()) emptyList() else listOf(Segment(text.indices, text))
+  }
   val segments = mutableListOf<Segment>()
   var previousJoins = false
   for (grapheme in graphemeRanges(text)) {
     val start = grapheme.first
     val end = grapheme.last + 1
-    val joins = isJoiningLetter(text[start])
+    // Auto: joining letters group. Word: everything but whitespace groups.
+    val joins = if (unit == TextTransitionUnit.WORD) !text[start].isWhitespace() else isJoiningLetter(text[start])
     if (joins && previousJoins && segments.isNotEmpty()) {
       val last = segments.removeAt(segments.size - 1)
       val range = last.range.first until end

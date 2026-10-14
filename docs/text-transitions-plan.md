@@ -345,6 +345,55 @@ and the last value replayed after release. Now every on-screen segment has its o
 Verified on both platforms with a 2 s slider drag (continuous roll, no replay on release),
 Flip sign on the percentage (kept digits change colour at once), parity 24/24, self-test 24/24.
 
+## `unit` — done
+
+`contentTransition={{ type, unit }}` with `unit: 'auto' | 'word' | 'whole'` (default `auto`):
+
+- `auto`: graphemes, Arabic grouped into words (unchanged behaviour).
+- `word`: whitespace-separated words animate as one piece, every script; whitespace is its own
+  piece. Numeric mode still keeps a shared non-digit prefix/suffix (`SAR `) in place.
+- `whole`: the entire old text leaves and the entire new text arrives. Direction is still
+  resolved from the numbers, so `numeric` + `whole` rolls the whole value up/down. The
+  "numeric over several lines → fade" fallback doesn't apply to `whole`.
+
+Native prop `contentTransitionUnit`; segmentation in both plan files takes the unit; Android
+captures old rects for the unit's segments plus the whole text. Fixtures: the mode column
+accepts `mode:unit` (28 rows). Parity case `transition-blur-whole`. Example: `unit` switch in
+the settings card.
+
+## Scrubbing performance fix — done
+
+Found in Malaa (investment calculator chart scrub, 4 animated texts): with `blur` the UI
+dropped from 60 to ~5 FPS over ~10 s and RAM grew ~270 MB. Cause: leaving segments restarted
+their 0.15 s "hurry" on every change, so with a change every frame they never finished; the
+pile, and the per-change work of re-animating it, grew without bound.
+
+Fixes (both platforms):
+- A segment hurries out once; ended or invisible (opacity ≤ 0.01) segments are removed
+  immediately; leaving segments are capped (1 per current segment on Android, 2 on iOS,
+  minimum 8).
+- Kept segments with the same glyphs and colour reuse their layer/node instead of being
+  redrawn; segments already at rest get no animation; only segments whose timeline changed
+  are re-animated (iOS).
+- iOS: sharp glyph images cached (keyed by glyphs, attributes, canvas and sub-pixel offset),
+  both image caches bounded by bytes (6 MB each) instead of entry count.
+- Android: no snapshot of the old text while a transition runs (the segments are the old
+  text); `RenderEffect`s cached per 0.5 px radius; no blur on hurrying segments; no per-frame
+  list allocations.
+
+Stress card in the example (4 texts changing every frame, 20–30 s):
+
+| | Memory | CPU / frames |
+|---|---|---|
+| iOS before (blur) | +160 MB in 20 s, still rising | ~92% CPU |
+| iOS after (blur) | flat | ~48% CPU |
+| iOS `none` | flat | ~50% CPU |
+| Android after (blur) | flat | p50 36 ms, 2.5% janky |
+| Android `none` | flat | p50 28 ms, 0.7% janky |
+
+(Simulator/emulator, debug builds.) The remaining Android gap is the blur itself: during a
+scrub every frame starts new blurred digits.
+
 ### Running parity
 
 ```bash

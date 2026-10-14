@@ -17,6 +17,16 @@ typedef NS_ENUM(NSInteger, JBTextTransitionMode) {
   JBTextTransitionModeFade,
 };
 
+/// What animates as one piece.
+typedef NS_ENUM(NSInteger, JBTextTransitionUnit) {
+  /// Graphemes; joining scripts (Arabic) grouped into words.
+  JBTextTransitionUnitAuto = 0,
+  /// Whitespace-separated words, every script.
+  JBTextTransitionUnitWord,
+  /// The entire text.
+  JBTextTransitionUnitWhole,
+};
+
 typedef NS_ENUM(NSInteger, JBTextSegmentChange) {
   JBTextSegmentChangeKept = 0,
   JBTextSegmentChangeRemoved,
@@ -37,11 +47,13 @@ typedef NS_ENUM(NSInteger, JBTextSegmentChange) {
 @property (nonatomic, readonly) NSInteger direction;
 
 + (JBTextTransitionMode)modeFromString:(NSString *)value;
++ (JBTextTransitionUnit)unitFromString:(NSString *)value;
 
 + (instancetype)planFromText:(NSString *)oldText
                       toText:(NSString *)newText
                         mode:(JBTextTransitionMode)mode
-                   direction:(NSString *)direction;
+                   direction:(NSString *)direction
+                        unit:(JBTextTransitionUnit)unit;
 
 /// Whole-text cross-fade: one Removed op for all of the old text, one Inserted for the new.
 + (instancetype)wholeTextPlanFromText:(NSString *)oldText toText:(NSString *)newText;

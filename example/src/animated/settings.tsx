@@ -4,11 +4,13 @@ import type {
   ContentTransition,
   ContentTransitionDirection,
   ContentTransitionType,
+  ContentTransitionUnit,
 } from 'react-native-animateable-text';
 
 export const TRANSITIONS: readonly ContentTransitionType[] = ['none', 'numeric', 'blur', 'fade'];
 export const DIRECTIONS: readonly ContentTransitionDirection[] = ['auto', 'up', 'down'];
 export const DURATIONS: readonly number[] = [0, 300, 800, 1500];
+export const UNITS: readonly ContentTransitionUnit[] = ['auto', 'word', 'whole'];
 export const FONTS = ['system', 'ibm-plex'] as const;
 
 export type FontChoice = (typeof FONTS)[number];
@@ -28,6 +30,7 @@ export type Settings = {
   transition: ContentTransitionType;
   direction: ContentTransitionDirection;
   duration: number;
+  unit: ContentTransitionUnit;
   font: FontChoice;
 };
 
@@ -35,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   transition: 'numeric',
   direction: 'auto',
   duration: 0,
+  unit: 'auto',
   font: 'system',
 };
 
@@ -43,8 +47,8 @@ const SettingsContext = React.createContext<Settings>(DEFAULT_SETTINGS);
 export const SettingsProvider = SettingsContext.Provider;
 
 export function useContentTransition(): ContentTransition {
-  const { transition, direction, duration } = React.useContext(SettingsContext);
-  return { type: transition, direction, duration };
+  const { transition, direction, duration, unit } = React.useContext(SettingsContext);
+  return { type: transition, direction, duration, unit };
 }
 
 /** Font family + weight for the selected font. Custom fonts carry the weight in the file. */

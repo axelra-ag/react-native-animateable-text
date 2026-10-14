@@ -1,5 +1,5 @@
 import type { TextProps, TextStyle } from 'react-native';
-import type { ContentTransitionType } from 'react-native-animateable-text';
+import type { ContentTransitionType, ContentTransitionUnit } from 'react-native-animateable-text';
 
 export type ParityCase = {
   id: string;
@@ -11,7 +11,7 @@ export type ParityCase = {
   >;
   useAnimatedProps?: boolean;
   /** AnimateableText starts on `from` and transitions to `text`; measured after it settles. */
-  transition?: { from: string; type: ContentTransitionType };
+  transition?: { from: string; type: ContentTransitionType; unit?: ContentTransitionUnit };
 };
 
 const EN_PARAGRAPH =
@@ -70,6 +70,12 @@ export const PARITY_CASES: ParityCase[] = [
     text: 'مكتمل',
     style: { fontSize: 20, writingDirection: 'rtl', textAlign: 'right' },
     transition: { from: 'قيد الانتظار', type: 'blur' },
+  },
+  {
+    id: 'transition-blur-whole',
+    text: 'Payment completed',
+    style: { fontSize: 18 },
+    transition: { from: 'Payment pending', type: 'blur', unit: 'whole' },
   },
   {
     id: 'transition-fade-multiline',

@@ -17,8 +17,15 @@ class TextTransitionPlanTest {
       val columns = line.split("\t")
       val oldText = fromFixture(columns[2])
       val newText = fromFixture(columns[3])
+      // Mode column: "mode" or "mode:unit".
+      val modeAndUnit = columns[0].split(":")
       val plan =
-          TextTransitionPlan.plan(oldText, newText, TextTransitionMode.fromString(columns[0]), columns[1])
+          TextTransitionPlan.plan(
+              oldText,
+              newText,
+              TextTransitionMode.fromString(modeAndUnit[0]),
+              columns[1],
+              TextTransitionUnit.fromString(modeAndUnit.getOrNull(1)))
       val direction = if (plan.direction > 0) "up" else "down"
       val ops = plan.fixtureDescription(oldText, newText)
       total++

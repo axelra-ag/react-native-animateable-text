@@ -46,6 +46,7 @@ using ParagraphConcreteState = ConcreteState<ParagraphState>;
   JBTextTransitionMode _transitionMode;
   CGFloat _transitionDuration;
   NSString *_transitionDirection;
+  JBTextTransitionUnit _transitionUnit;
 
   JBTextTransitionAnimator *_animator;
 }
@@ -62,6 +63,7 @@ using ParagraphConcreteState = ConcreteState<ParagraphState>;
   _transitionMode = [JBTextTransitionPlan modeFromString:RCTNSStringFromString(newProps.contentTransitionType)];
   _transitionDuration = newProps.contentTransitionDuration / 1000.0;
   _transitionDirection = RCTNSStringFromString(newProps.contentTransitionDirection);
+  _transitionUnit = [JBTextTransitionPlan unitFromString:RCTNSStringFromString(newProps.contentTransitionUnit)];
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -165,12 +167,17 @@ using ParagraphConcreteState = ConcreteState<ParagraphState>;
   JBTextTransitionPlan *plan;
   BOOL needsWholeText = _paragraphAttributes.adjustsFontSizeToFit || _committedParagraphAttributes.adjustsFontSizeToFit ||
       _paragraphAttributes.maximumNumberOfLines > 0 ||
-      (mode == JBTextTransitionModeNumeric && (from.lineCount > 1 || to.lineCount > 1));
+      (mode == JBTextTransitionModeNumeric && _transitionUnit != JBTextTransitionUnitWhole &&
+       (from.lineCount > 1 || to.lineCount > 1));
   if (needsWholeText) {
     plan = [JBTextTransitionPlan wholeTextPlanFromText:from.string toText:to.string];
     mode = JBTextTransitionModeFade;
   } else {
-    plan = [JBTextTransitionPlan planFromText:from.string toText:to.string mode:mode direction:_transitionDirection];
+    plan = [JBTextTransitionPlan planFromText:from.string
+                                       toText:to.string
+                                         mode:mode
+                                    direction:_transitionDirection
+                                         unit:_transitionUnit];
   }
 
   if (!_animator) {

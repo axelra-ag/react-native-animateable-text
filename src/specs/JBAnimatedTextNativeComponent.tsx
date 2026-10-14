@@ -14,6 +14,7 @@ interface NativeProps extends ViewProps {
   contentTransitionType?: WithDefault<string, 'none'>;
   contentTransitionDuration?: WithDefault<Float, 0>;
   contentTransitionDirection?: WithDefault<string, 'auto'>;
+  contentTransitionUnit?: WithDefault<string, 'auto'>;
 }
 
 export default codegenNativeComponent<NativeProps>('JBAnimatedText');

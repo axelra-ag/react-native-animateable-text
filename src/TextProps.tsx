@@ -10,6 +10,14 @@ export type ContentTransitionType = "none" | "numeric" | "blur" | "fade";
 export type ContentTransitionDirection = "auto" | "up" | "down";
 
 /**
+ * What animates as one piece.
+ * - `auto`: only what changed; characters, with Arabic grouped into words.
+ * - `word`: whitespace-separated words, in every script.
+ * - `whole`: the entire text, even parts that didn't change.
+ */
+export type ContentTransitionUnit = "auto" | "word" | "whole";
+
+/**
  * Animates the text natively whenever `text` changes.
  * - `numeric`: changed characters blur and slide vertically (SwiftUI `numericText`).
  * - `blur`: changed segments blur out and in, in place.
@@ -23,6 +31,8 @@ export type ContentTransition =
       duration?: number;
       /** `numeric` only. `auto` compares the old and new numbers. */
       direction?: ContentTransitionDirection;
+      /** Defaults to `auto`. */
+      unit?: ContentTransitionUnit;
     };
 
 export type AnimateableTextProps = Omit<NativeTextProps, "children"> & {
