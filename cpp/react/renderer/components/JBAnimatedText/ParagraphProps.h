@@ -40,6 +40,9 @@ class CParagraphProps : public ParagraphProps { // EDITED
 
   // ADDED
   std::string text{};
+  std::string contentTransitionType{"none"};
+  Float contentTransitionDuration{0};
+  std::string contentTransitionDirection{"auto"};
   // END ADDED
 
 #ifdef RN_SERIALIZABLE_STATE

@@ -8,7 +8,7 @@ import Touchable from "react-native/Libraries/Components/Touchable/Touchable";
 // @ts-ignore
 import createReactNativeComponentClass from "react-native/Libraries/Renderer/shims/createReactNativeComponentClass";
 import nullthrows from "nullthrows";
-import type { AnimateableTextProps } from "./TextProps";
+import type { AnimateableTextProps, ContentTransition } from "./TextProps";
 import type { Text as IText } from "react-native";
 
 const PRESS_RECT_OFFSET = { top: 20, left: 20, right: 20, bottom: 30 };
@@ -34,6 +34,9 @@ const viewConfig = {
     android_hyphenationFrequency: true,
     lineBreakStrategyIOS: true,
     text: true,
+    contentTransitionType: true,
+    contentTransitionDuration: true,
+    contentTransitionDirection: true,
   },
   directEventTypes: {
     topTextLayout: { registrationName: "onTextLayout" },
@@ -41,6 +44,16 @@ const viewConfig = {
   },
   uiViewClassName: "JBAnimatedText",
 } as const;
+
+const toNativeTransitionProps = (transition: ContentTransition | undefined) => {
+  const options =
+    typeof transition === "object" ? transition : { type: transition ?? "none" };
+  return {
+    contentTransitionType: options.type,
+    contentTransitionDuration: options.duration ?? 0,
+    contentTransitionDirection: options.direction ?? "auto",
+  };
+};
 
 const isTouchable = (props: AnimateableTextProps): boolean =>
   props.onPress != null ||
@@ -155,12 +168,15 @@ const TouchableText = forwardRef<IText, AnimateableTextProps>(
         | undefined;
     }
 
-    const renderedProps: AnimateableTextProps & {
-      ref: Ref<IText>;
-      isHighlighted: boolean;
-      selectionColor: (symbol & { __TYPE__: "Color" }) | undefined;
-    } = {
-      ...props,
+    const { contentTransition, ...nativeProps } = props;
+    const renderedProps: AnimateableTextProps &
+      ReturnType<typeof toNativeTransitionProps> & {
+        ref: Ref<IText>;
+        isHighlighted: boolean;
+        selectionColor: (symbol & { __TYPE__: "Color" }) | undefined;
+      } = {
+      ...nativeProps,
+      ...toNativeTransitionProps(contentTransition),
       // Same default as RN's <Text>; the native default is "clip", which also
       // disables adjustsFontSizeToFit on iOS.
       ellipsizeMode: props.ellipsizeMode ?? "tail",

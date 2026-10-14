@@ -21,7 +21,34 @@ CParagraphProps::CParagraphProps( // EDITED
       text(
           ReactNativeFeatureFlags::enableCppPropsIteratorSetter()
               ? sourceProps.text
-              : convertRawProp(context, rawProps, "text", sourceProps.text, {}))
+              : convertRawProp(context, rawProps, "text", sourceProps.text, {})),
+      contentTransitionType(
+          ReactNativeFeatureFlags::enableCppPropsIteratorSetter()
+              ? sourceProps.contentTransitionType
+              : convertRawProp(
+                    context,
+                    rawProps,
+                    "contentTransitionType",
+                    sourceProps.contentTransitionType,
+                    {"none"})),
+      contentTransitionDuration(
+          ReactNativeFeatureFlags::enableCppPropsIteratorSetter()
+              ? sourceProps.contentTransitionDuration
+              : convertRawProp(
+                    context,
+                    rawProps,
+                    "contentTransitionDuration",
+                    sourceProps.contentTransitionDuration,
+                    {0})),
+      contentTransitionDirection(
+          ReactNativeFeatureFlags::enableCppPropsIteratorSetter()
+              ? sourceProps.contentTransitionDirection
+              : convertRawProp(
+                    context,
+                    rawProps,
+                    "contentTransitionDirection",
+                    sourceProps.contentTransitionDirection,
+                    {"auto"}))
 // END ADDED
 {};
 
@@ -40,6 +67,9 @@ void CParagraphProps::setProp( // EDITED
   // ADDED
   switch (hash) {
     RAW_SET_PROP_SWITCH_CASE_BASIC(text);
+    RAW_SET_PROP_SWITCH_CASE_BASIC(contentTransitionType);
+    RAW_SET_PROP_SWITCH_CASE_BASIC(contentTransitionDuration);
+    RAW_SET_PROP_SWITCH_CASE_BASIC(contentTransitionDirection);
   }
   // END ADDED
 }
@@ -58,6 +88,15 @@ folly::dynamic CParagraphProps::getDiffProps(const Props* prevProps) const { // 
   // ADDED
   if (text != oldProps->text) {
     result["text"] = text;
+  }
+  if (contentTransitionType != oldProps->contentTransitionType) {
+    result["contentTransitionType"] = contentTransitionType;
+  }
+  if (contentTransitionDuration != oldProps->contentTransitionDuration) {
+    result["contentTransitionDuration"] = contentTransitionDuration;
+  }
+  if (contentTransitionDirection != oldProps->contentTransitionDirection) {
+    result["contentTransitionDirection"] = contentTransitionDirection;
   }
   // END ADDED
 

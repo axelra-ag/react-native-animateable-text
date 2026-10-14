@@ -6,3 +6,9 @@ Animated.addWhitelistedNativeProps({ text: true });
 const AnimateableText = Animated.createAnimatedComponent(RawAnimateableText);
 
 export default AnimateableText;
+export type {
+  AnimateableTextProps,
+  ContentTransition,
+  ContentTransitionDirection,
+  ContentTransitionType,
+} from './TextProps';

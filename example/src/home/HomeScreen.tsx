@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { PARITY_CASES } from '../parity/parityCases';
 import { ScreenHeader } from '../ui/ScreenHeader';
 import { colors, GUTTER } from '../ui/theme';
 
@@ -13,12 +14,13 @@ const SECTIONS: Section[] = [
   {
     id: 'animated',
     title: 'Animated text',
-    description: 'Shared values driving the text on the UI thread: sliders, count-up, stopwatch, colour, plain prop.',
+    description:
+      'Shared values and plain props driving the text, with contentTransition (none, numeric, blur, fade), direction, duration and font switches.',
   },
   {
     id: 'parity',
     title: 'Parity: Text vs AnimateableText',
-    description: '21 cases rendered side by side. scripts/parity.mjs pixel-diffs them from device screenshots.',
+    description: `${PARITY_CASES.length} cases rendered side by side. scripts/parity.mjs pixel-diffs them from device screenshots.`,
   },
 ];
 

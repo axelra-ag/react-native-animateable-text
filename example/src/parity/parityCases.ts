@@ -1,4 +1,5 @@
 import type { TextProps, TextStyle } from 'react-native';
+import type { ContentTransitionType } from 'react-native-animateable-text';
 
 export type ParityCase = {
   id: string;
@@ -9,6 +10,8 @@ export type ParityCase = {
     'numberOfLines' | 'ellipsizeMode' | 'adjustsFontSizeToFit' | 'minimumFontScale'
   >;
   useAnimatedProps?: boolean;
+  /** AnimateableText starts on `from` and transitions to `text`; measured after it settles. */
+  transition?: { from: string; type: ContentTransitionType };
 };
 
 const EN_PARAGRAPH =
@@ -56,4 +59,22 @@ export const PARITY_CASES: ParityCase[] = [
   },
   { id: 'padding-bg', text: 'Padded', style: { fontSize: 18, padding: 6, backgroundColor: '#F1E9FA' } },
   { id: 'animated-props', text: '98,310.75', style: { fontSize: 26, fontWeight: '700' }, useAnimatedProps: true },
+  {
+    id: 'transition-numeric',
+    text: 'SAR 98,310.75',
+    style: { fontSize: 22, fontWeight: '700' },
+    transition: { from: 'SAR 1,204.50', type: 'numeric' },
+  },
+  {
+    id: 'transition-blur-ar',
+    text: 'مكتمل',
+    style: { fontSize: 20, writingDirection: 'rtl', textAlign: 'right' },
+    transition: { from: 'قيد الانتظار', type: 'blur' },
+  },
+  {
+    id: 'transition-fade-multiline',
+    text: EN_PARAGRAPH,
+    style: { fontSize: 15 },
+    transition: { from: 'Short line.', type: 'fade' },
+  },
 ];

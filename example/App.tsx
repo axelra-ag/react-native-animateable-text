@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { BackHandler, Linking, LogBox } from 'react-native';
+import { useFonts } from 'expo-font';
 import { AnimatedTextScreen } from './src/animated/AnimatedTextScreen';
+import { IBM_PLEX_FONTS } from './src/animated/settings';
 import { HomeScreen } from './src/home/HomeScreen';
 import { ParityScreen } from './src/parity/ParityScreen';
 
@@ -46,12 +48,15 @@ function parseRoute(url: string | null): Route | null {
   );
   if (match[1] === 'parity') return parityRoute(params);
   if (match[1] === 'animated') return { screen: 'animated' };
+  // Content transitions used to be their own section.
+  if (match[1] === 'transitions') return { screen: 'animated' };
   if (match[1] === 'home') return HOME;
   return null;
 }
 
 export default function App() {
   const [route, setRoute] = React.useState<Route>(HOME);
+  useFonts(IBM_PLEX_FONTS);
 
   React.useEffect(() => {
     Linking.getInitialURL().then((url) => {

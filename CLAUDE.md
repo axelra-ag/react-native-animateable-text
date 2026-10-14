@@ -14,8 +14,38 @@ touching transition code and update it when a decision changes.
 | JS | `src/index.tsx`, `src/AnimateableText.tsx`, `src/TextProps.tsx` | Registers the `JBAnimatedText` host component (`createReactNativeComponentClass` + `validAttributes`), wraps it with `Animated.createAnimatedComponent`, handles press/highlight like RN's `<Text>`. |
 | Codegen | `src/specs/JBAnimatedTextNativeComponent.tsx` | Native props for codegen (`JBAnimatedTextCodegen`). |
 | C++ (shared) | `cpp/react/renderer/components/JBAnimatedText/` | A copy of RN's paragraph shadow node. `CParagraphProps` adds the `text` prop; `CBaseTextShadowNode::buildAttributedString` builds one fragment from `text` instead of child nodes. Measurement and layout are RN's. |
-| iOS | `ios/JBAnimatedTextComponentView.{h,mm}` | `JBAnimatedTextComponentView : RCTParagraphComponentView`. RN's own paragraph view draws it. |
-| Android | `android/src/main/java/com/reactnativereanimatedtext/` | `JBAnimatedTextViewManager extends ReactTextViewManager` → a stock `ReactTextView`, which draws its own `TextView` layout. |
+| iOS | `ios/JBAnimatedTextComponentView.{h,mm}` | `JBAnimatedTextComponentView : RCTParagraphComponentView`. RN's own paragraph view draws it at rest; runs `contentTransition` on text changes. |
+| Android | `android/src/main/java/com/reactnativereanimatedtext/` | `JBAnimatedTextViewManager extends ReactTextViewManager` → `JBAnimatedTextView : ReactTextView`, which draws its own `TextView` layout at rest and runs `contentTransition` on text changes. |
+
+### Content transitions
+
+`contentTransition` (`numeric` / `blur` / `fade`, optional `duration` ms and `direction`) is
+normalised in JS into three flat native props (`contentTransitionType`,
+`contentTransitionDuration`, `contentTransitionDirection`), parsed in `CParagraphProps` (iOS)
+and `@ReactProp` setters (Android).
+
+| Piece | iOS | Android |
+|---|---|---|
+| Plan: segmentation, diff, direction (pure, unit-tested) | `ios/JBTextTransitionPlan.{h,mm}` | `TextTransitionPlan.kt` |
+| Timing + per-segment looks (keep in sync) | `ios/JBTextTransitionAnimator.mm` | `TextTransitionTiming.kt` |
+| Rendering (stateful: per-segment timelines, retargets mid-transition) | `JBTextTransitionAnimator` (CALayers, vImage blur levels, cache) | `JBAnimatedTextView.Transition` (RenderNodes, `RenderEffect` blur) |
+| Hook | `JBAnimatedTextComponentView` `finalizeUpdates:` | `JBAnimatedTextViewManager.updateExtraData` → `prepareForTextChange()` |
+
+Rules:
+
+- **Both platforms implement the same spec.** Any change to segmentation, diff, or direction
+  goes into both plan files and gets a row in `fixtures/text-transitions.tsv`. Any change to
+  timing or looks goes into both timing files.
+- **At rest the view is RN's.** Transition layers/nodes exist only while animating; when they
+  finish, RN's own text drawing is shown again. Parity must stay identical, including the
+  `transition-*` cases that are measured after a transition settles.
+- **iOS draws glyphs with RN's text storage** (internal `RCTTextLayoutManager` methods behind a
+  category, guarded with `respondsToSelector:`). Never re-lay out text yourself.
+- **Changes mid-transition retarget, never snap.** Segments keep their own timelines (settle /
+  leave from their current look); test with the slider demo after touching the animators.
+- **Android must capture the old text before RN updates it.** `TextView` reuses its
+  `BoringLayout` for single-line text, so a kept reference to the old `Layout` shows the new text.
+- Design notes, numbers, and known limitations: `docs/text-transitions-plan.md`.
 
 Rules for this design:
 
@@ -47,6 +77,9 @@ android/    Android view manager (android/build/ is a stale artifact — don't e
 lib/        bob build output (generated)
 example/    Expo dev-client app (Expo 57, RN 0.86.3, Reanimated 4.5.1)
 docs/       Plans and design notes
+fixtures/   Shared transition-plan fixtures (iOS + Android)
+tests/ios/  macOS runner for the iOS plan fixtures
+scripts/    test-transition-plan.sh
 ```
 
 ## Tooling
@@ -74,8 +107,8 @@ Sections (home screen, or deep link `animateabletext://<route>`):
 | Route | Screen | Purpose |
 |---|---|---|
 | `home` | Sections list | |
-| `animated` | Animated text | Existing behaviour: slider, `withTiming` count-up (Latin + Arabic-Indic digits), text + animated colour, per-frame stopwatch, plain `text` prop, multi-line with `numberOfLines`. |
-| `parity` | Parity | `<Text>` vs `<AnimateableText>` side by side (21 cases). Query: `page`, `pageSize`, `perturb=1`, `autoAdvanceMs`, `runId`. |
+| `animated` | Animated text | Everything in one screen. A settings card (contentTransition `none`/`numeric`/`blur`/`fade`, direction, duration, font: System or Malaa's IBM Plex Sans Arabic) applies to every demo: original slider, balance (Latin + Arabic-Indic), percentage slider with colour (red/grey/green), centred number between boxes (bounds tint + optional Reanimated `LinearTransition` on the row), count-up and stopwatch (every-frame updates), words (Latin + Arabic), multi-line with `numberOfLines`. `transitions` is an alias. |
+| `parity` | Parity | `<Text>` vs `<AnimateableText>` side by side (24 cases). Query: `page`, `pageSize`, `perturb=1`, `autoAdvanceMs`, `runId`. |
 
 How it is wired:
 
@@ -121,6 +154,9 @@ Gotchas:
   `Tried to register two views with the same name JBAnimatedText`. Reload the app.
 - The dev-client onboarding sheet (first launch) and the dev-tools button (top-right) can
   cover content. Screen headers start at `HEADER_TOP` (130pt) to clear the button.
+- Fonts: `example/assets/fonts/IBMPlexSansArabicSAR-*.ttf` are copied from Malaa
+  (`src/assets/fonts/`) and loaded at runtime with `expo-font` (`useFonts` in `App.tsx`), so
+  switching fonts needs no native rebuild.
 - The `Deep imports from the 'react-native' package are deprecated` warnings come from
   `src/AnimateableText.tsx` and are expected for now.
 
@@ -171,14 +207,41 @@ xcrun simctl ui <udid> content_size large
 adb -s <serial> shell settings put system font_scale 1.0
 ```
 
-Expected now: 21/21 identical on iOS and Android at default and largest sizes; self-test
-21/21 detected.
+Expected now: 24/24 identical on iOS and Android (21/21 at the largest size before the
+`transition-*` cases were added); self-test 24/24 detected. Pages with `transition-*` cases
+wait 1.6 s before measuring so the transition has settled. A rare Android run times out
+waiting for page 0; rerun it.
 
 **Run the baseline and the self-test on both platforms after any change to `src/`, `cpp/`,
 `ios/`, or `android/`.** A non-identical result is a regression, not noise.
 
 Adding a case: append to `example/src/parity/parityCases.ts` (`id`, `text`, `style`, optional
 `props` / `useAnimatedProps`). Keep page heights within one screen at `--pageSize 4`.
+
+## Transition plan tests
+
+```bash
+scripts/test-transition-plan.sh
+ANDROID_HOME=$HOME/Library/Android/sdk scripts/test-transition-plan.sh --android
+```
+
+iOS compiles `ios/JBTextTransitionPlan.mm` with `tests/ios/TextTransitionPlanTests.mm` for
+macOS; Android runs `android/src/test/.../TextTransitionPlanTest.kt` through the example's
+Gradle (`:react-native-animateable-text:testDebugUnitTest`). Both read
+`fixtures/text-transitions.tsv`: mode, direction option, old, new, expected direction,
+expected ops (`=kept -removed +inserted`, `␠` for a space, `∅` for empty text).
+
+## Seeing an animation frame by frame
+
+Screenshots are too slow; record video and tile the frames that change (needs `ffmpeg`).
+
+```bash
+xcrun simctl io <udid> recordVideo --codec h264 --force rec.mp4   # Ctrl-C to stop
+adb -s <serial> shell screenrecord --size 720x1600 --time-limit 5 /sdcard/rec.mp4 && adb pull /sdcard/rec.mp4
+ffmpeg -i rec.mp4 -vf "crop=W:H:X:Y,mpdecimate,setpts=N/TB,tile=3x8" -frames:v 1 sheet.png
+```
+
+Use the 1500 ms duration in the transitions screen to make frames easier to read.
 
 ## Open items
 

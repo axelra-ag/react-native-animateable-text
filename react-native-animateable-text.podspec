@@ -19,6 +19,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/JonnyBurger/react-native-animateable-text.git", :tag => "#{s.version}" }
 
   s.source_files = "{ios}/**/*.{h,m,mm,cpp}"
+  s.frameworks = "Accelerate"
 
   s.dependency "hermes-engine"
 

@@ -6,6 +6,9 @@ import { BACK_LINK_TOP } from '../ui/theme';
 import { PARITY_CASES, type ParityCase } from './parityCases';
 
 const GUTTER = 16;
+const TRANSITION_START_MS = 100;
+// Default transition settles in ~0.73 s; measure well after that.
+const TRANSITION_SETTLE_MS = 1600;
 const COLUMN_GAP = 16;
 const COLUMN_WIDTH = Math.floor((Dimensions.get('window').width - GUTTER * 2 - COLUMN_GAP) / 2);
 
@@ -32,6 +35,17 @@ function AnimatedPropsText({ item, style }: { item: ParityCase; style: ParityCas
   return <AnimateableText style={style} {...item.props} animatedProps={animatedProps} />;
 }
 
+// Mounts on `transition.from`, then switches to the target text, so the measured
+// frame is the end state of a transition.
+function TransitionedText({ item, style }: { item: ParityCase; style: ParityCase['style'] }) {
+  const [text, setText] = React.useState(item.transition?.from ?? item.text);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setText(item.text), TRANSITION_START_MS);
+    return () => clearTimeout(timer);
+  }, [item.text]);
+  return <AnimateableText style={style} {...item.props} text={text} contentTransition={item.transition?.type} />;
+}
+
 function ParityRow({
   item,
   isPerturbed,
@@ -54,7 +68,9 @@ function ParityRow({
           </Text>
         </View>
         <View ref={animateableRef} collapsable={false} style={{ width: COLUMN_WIDTH }}>
-          {item.useAnimatedProps ? (
+          {item.transition ? (
+            <TransitionedText item={item} style={animateableStyle} />
+          ) : item.useAnimatedProps ? (
             <AnimatedPropsText item={item} style={animateableStyle} />
           ) : (
             <AnimateableText style={animateableStyle} {...item.props} text={item.text} />
@@ -131,7 +147,7 @@ export function ParityScreen({
       if (autoAdvanceMs > 0) {
         advanceTimer = setTimeout(() => onPageChange(page + 1), autoAdvanceMs);
       }
-    }, 600);
+    }, cases.some((item) => item.transition) ? TRANSITION_SETTLE_MS : 600);
     return () => {
       cancelled = true;
       clearTimeout(timer);

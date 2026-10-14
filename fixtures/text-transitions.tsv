@@ -1,0 +1,22 @@
+# Shared fixtures for the text transition plan (iOS JBTextTransitionPlan, Android TextTransitionPlan).
+# Columns (tab-separated): mode, direction option, old text, new text, expected direction (up|down), expected ops.
+# Ops in logical order: =kept -removed +inserted. A space inside a segment is written as ␠. Empty text is written as ∅.
+numeric	auto	1,204.50	1,205.00	up	=1 =, =2 =0 -4 +5 =. -5 +0 =0
+numeric	auto	999	1,000	up	+1 +, -9 +0 -9 +0 -9 +0
+numeric	auto	1,000	999	down	-1 -, -0 +9 -0 +9 -0 +9
+numeric	auto	SAR 12.50	SAR 9.75	down	=S =A =R =␠ -1 -2 +9 =. -5 +7 -0 +5
+numeric	auto	١٢٫٥٠ ر.س	١٣٫٥٠ ر.س	up	=١ -٢ +٣ =٫ =٥ =٠ =␠ =ر =. =س
+numeric	auto	-5	-12	down	=- +1 -5 +2
+numeric	auto	+4.20%	-1.05%	down	-+ +- -4 +1 =. -2 +0 -0 +5 =%
+numeric	auto	∅	5	up	+5
+numeric	auto	12	12	up	=1 =2
+numeric	up	5	3	up	-5 +3
+numeric	down	3	5	down	-3 +5
+blur	auto	Hello world	Hello there	up	=H =e =l =l =o =␠ -w -o +t +h +e =r -l -d +e
+blur	auto	الرصيد ١٠	الرصيد ٢٠	up	=الرصيد =␠ -١ +٢ =٠
+blur	auto	مرحبا	مرحبا بك	up	=مرحبا +␠ +بك
+blur	auto	مَرحَبا	مرحبا	up	-مَرحَبا +مرحبا
+fade	auto	abc	abd	up	=a =b -c +d
+blur	auto	a👍🏽b	a👍b	up	=a -👍🏽 +👍 =b
+blur	auto	a👨‍👩‍👧b	a👨‍👩‍👦b	up	=a -👨‍👩‍👧 +👨‍👩‍👦 =b
+blur	auto	🇸🇦🇺🇸	🇸🇦	up	=🇸🇦 -🇺🇸
