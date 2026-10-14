@@ -11,22 +11,25 @@
     "generatecpp": "node node_modules/react-native/scripts/generate-codegen-artifacts.js -p ../ -o ../gcpp -t all"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~56.0.4",
+    "@expo/metro-runtime": "~57.0.16",
     "@miblanchard/react-native-slider": "^2.6.0",
-    "expo": "^56.0.0-preview.6",
-    "expo-build-properties": "~56.0.4",
-    "expo-dev-client": "~56.0.4",
-    "expo-status-bar": "~56.0.4",
+    "expo": "~57.0.26",
+    "expo-build-properties": "~57.0.22",
+    "expo-dev-client": "~57.0.19",
+    "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-native": "0.85.3",
+    "react-native": "0.86.3",
     "react-native-animateable-text": "file:.yalc/react-native-animateable-text",
-    "react-native-reanimated": "4.3.0",
-    "react-native-web": "^0.21.2"
+    "react-native-reanimated": "4.5.1",
+    "react-native-web": "^0.21.2",
+    "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~19.2.14",
+    "pixelmatch": "7.1.0",
+    "pngjs": "7.0.0",
     "typescript": "~6.0.3",
     "yalc": "^1.0.0-pre.53"
   },

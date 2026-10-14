@@ -2,6 +2,7 @@
   "expo": {
     "name": "react-native-animateable-text-example",
     "slug": "animateable-text-example",
+    "scheme": "animateabletext",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -31,7 +32,9 @@
         {
           "ios": {
             "newArchEnabled": true,
-            "deploymentTarget": "16.4"
+            "deploymentTarget": "16.4",
+            "useFrameworks": "static",
+            "enableSceneSupport": true
           },
           "android": {
             "newArchEnabled": true

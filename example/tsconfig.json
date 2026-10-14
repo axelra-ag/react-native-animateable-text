@@ -3,8 +3,17 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "react-native-animateable-text": ["../src/index"],
-      "react-native-animateable-text/*": ["../src/*"]
+      "react-native-animateable-text": [
+        "../src/index"
+      ],
+      "react-native-animateable-text/*": [
+        "../src/*"
+      ]
     }
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../src/react-native-internals.d.ts"
+  ]
 }

@@ -161,6 +161,9 @@ const TouchableText = forwardRef<IText, AnimateableTextProps>(
       selectionColor: (symbol & { __TYPE__: "Color" }) | undefined;
     } = {
       ...props,
+      // Same default as RN's <Text>; the native default is "clip", which also
+      // disables adjustsFontSizeToFit on iOS.
+      ellipsizeMode: props.ellipsizeMode ?? "tail",
       ...(responseHandlers ?? {}),
       ref: forwardedRef,
       isHighlighted,

@@ -49,3 +49,6 @@ yarn-error.*
 !.yarn/versions
 
 /.yalc
+
+# parity screenshots
+/parity-output
