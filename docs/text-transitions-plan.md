@@ -378,8 +378,17 @@ Fixes (both platforms):
 - iOS: sharp glyph images cached (keyed by glyphs, attributes, canvas and sub-pixel offset),
   both image caches bounded by bytes (6 MB each) instead of entry count.
 - Android: no snapshot of the old text while a transition runs (the segments are the old
-  text); `RenderEffect`s cached per 0.5 px radius; no blur on hurrying segments; no per-frame
-  list allocations.
+  text); no per-frame list allocations.
+- Android blur: every `RenderEffect` is an offscreen pass, so per-segment blur meant ~100
+  passes per frame while scrubbing 4 texts. Blur is now quantised to 4 levels (like iOS) and
+  segments are grouped per level into one `RenderNode` per level that carries the effect: at
+  most 3 blur passes per text per frame. Benchmarked (3 rounds each): per-segment blur with or
+  without compositing layers, quantised or not, all ~38–42 ms median frame; grouped ~31–34 ms;
+  `none` ~24–29 ms.
+- Mistakes made and reverted on the way: dropping blur from hurrying segments (blur snapped
+  to sharp each frame while sliding) and a cap of 1 leaving segment per character (visible
+  segments popped). Hurrying segments keep their normal blur; the cap is 2 on both platforms
+  and evicts the most faded first.
 
 Stress card in the example (4 texts changing every frame, 20–30 s):
 
@@ -388,11 +397,10 @@ Stress card in the example (4 texts changing every frame, 20–30 s):
 | iOS before (blur) | +160 MB in 20 s, still rising | ~92% CPU |
 | iOS after (blur) | flat | ~48% CPU |
 | iOS `none` | flat | ~50% CPU |
-| Android after (blur) | flat | p50 36 ms, 2.5% janky |
-| Android `none` | flat | p50 28 ms, 0.7% janky |
+| Android grouped blur | flat | p50 31–34 ms, ~1.3% janky |
+| Android `none` | flat | p50 24–29 ms, ~0.2% janky |
 
-(Simulator/emulator, debug builds.) The remaining Android gap is the blur itself: during a
-scrub every frame starts new blurred digits.
+(Simulator/emulator, debug builds; the emulator is noisy, so compare medians of several runs.)
 
 ### Running parity
 

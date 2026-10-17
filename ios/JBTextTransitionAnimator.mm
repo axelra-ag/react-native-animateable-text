@@ -622,11 +622,19 @@ typedef NS_ENUM(NSInteger, JBSegmentRole) {
   }
   _current = settling;
 
-  // Bound the leaving pile: the oldest are the most faded.
+  // Bound the leaving pile.
   NSUInteger maxLeaving = MAX(kMinMaxLeaving, kMaxLeavingPerSegment * _current.count);
-  while (_leaving.count > maxLeaving) {
-    [_leaving.firstObject.layer removeFromSuperlayer];
-    [_leaving removeObjectAtIndex:0];
+  if (_leaving.count > maxLeaving) {
+    // Drop the most faded first, so what disappears is already (nearly) invisible.
+    [_leaving sortUsingComparator:^NSComparisonResult(JBTextSegment *a, JBTextSegment *b) {
+      CGFloat opacityA = [a lookAt:now].opacity;
+      CGFloat opacityB = [b lookAt:now].opacity;
+      return opacityA < opacityB ? NSOrderedAscending : opacityA > opacityB ? NSOrderedDescending : NSOrderedSame;
+    }];
+    while (_leaving.count > maxLeaving) {
+      [_leaving.firstObject.layer removeFromSuperlayer];
+      [_leaving removeObjectAtIndex:0];
+    }
   }
 
   // Only segments whose timeline changed get new animations.

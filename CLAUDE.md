@@ -28,7 +28,7 @@ touching transition code and update it when a decision changes.
 |---|---|---|
 | Plan: segmentation, diff, direction (pure, unit-tested) | `ios/JBTextTransitionPlan.{h,mm}` | `TextTransitionPlan.kt` |
 | Timing + per-segment looks (keep in sync) | `ios/JBTextTransitionAnimator.mm` | `TextTransitionTiming.kt` |
-| Rendering (stateful: per-segment timelines, retargets mid-transition) | `JBTextTransitionAnimator` (CALayers, vImage blur levels, cache) | `JBAnimatedTextView.Transition` (RenderNodes, `RenderEffect` blur) |
+| Rendering (stateful: per-segment timelines, retargets mid-transition) | `JBTextTransitionAnimator` (CALayers, vImage blur levels, cache) | `JBAnimatedTextView.Transition` (RenderNodes; blur quantised to 4 levels, one `RenderEffect` group node per level) |
 | Hook | `JBAnimatedTextComponentView` `finalizeUpdates:` | `JBAnimatedTextViewManager.updateExtraData` → `prepareForTextChange()` |
 
 Rules:
@@ -47,6 +47,9 @@ Rules:
   unchanged segments are reused. After touching the animators, run the example's "Stress: 4
   texts every frame" card for 30 s with `blur` and check memory stays flat (iOS:
   `ps -o rss= -p <pid>`; Android: `dumpsys meminfo` + `dumpsys gfxinfo`) and close to `none`.
+  The emulator is noisy: compare medians of 3 alternating runs, never single runs.
+- **Android: never put a `RenderEffect` on individual segment nodes.** Each effect is an
+  offscreen pass; blur goes through the per-level group nodes.
 - **Android must capture the old text before RN updates it.** `TextView` reuses its
   `BoringLayout` for single-line text, so a kept reference to the old `Layout` shows the new text.
 - Design notes, numbers, and known limitations: `docs/text-transitions-plan.md`.

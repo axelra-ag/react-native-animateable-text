@@ -31,21 +31,24 @@ import kotlin.math.roundToInt
 
 // Leaving segments a text keeps at most; the oldest go first. Bounds work and memory when
 // changes arrive every frame (scrubbing). Mirrors ios/JBTextTransitionAnimator.mm.
-private const val MAX_LEAVING_PER_SEGMENT = 1
+private const val MAX_LEAVING_PER_SEGMENT = 2
 private const val MIN_MAX_LEAVING = 8
 private const val INVISIBLE_OPACITY = 0.01f
-// Blur radii are rounded to this step (px) so RenderEffects can be reused across frames.
-private const val BLUR_STEP_PX = 0.5f
+// Blur is quantised to a few levels (like iOS's pre-rendered levels). Segments are grouped by
+// level and each group is blurred once per frame: every RenderEffect is an offscreen pass, so
+// per-segment blur meant ~100 passes per frame while scrubbing several texts.
+private const val BLUR_LEVELS = 4
+
+private fun blurLevel(amount: Float): Int = (amount * (BLUR_LEVELS - 1)).roundToInt().coerceIn(0, BLUR_LEVELS - 1)
 
 private val blurEffects = HashMap<Int, RenderEffect>()
 
 @RequiresApi(Build.VERSION_CODES.S)
-private fun blurEffect(radius: Float): RenderEffect? {
-  val step = (radius / BLUR_STEP_PX).roundToInt()
-  if (step <= 0) return null
-  return blurEffects.getOrPut(step) {
-    val r = step * BLUR_STEP_PX
-    RenderEffect.createBlurEffect(r, r, Shader.TileMode.DECAL)
+private fun blurEffect(level: Int, maxRadius: Float): RenderEffect? {
+  if (level <= 0 || maxRadius <= 0f) return null
+  val radiusPx = (maxRadius * level / (BLUR_LEVELS - 1)).roundToInt().coerceAtLeast(1)
+  return blurEffects.getOrPut(radiusPx) {
+    RenderEffect.createBlurEffect(radiusPx.toFloat(), radiusPx.toFloat(), Shader.TileMode.DECAL)
   }
 }
 
@@ -281,10 +284,8 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
         }
         if (!segment.isHurrying) {
           segment.isHurrying = true
-          // Gone within the hurry; blurring it costs a GPU pass per frame for nothing.
-          segment.hasBlur = false
           segment.drift *= TextTransitionTiming.HURRY_DRIFT_FACTOR
-          segment.start(Role.LEAVE, look.copy(blur = 0f), now, TextTransitionTiming.HURRY_DURATION)
+          segment.start(Role.LEAVE, look, now, TextTransitionTiming.HURRY_DURATION)
         }
       }
 
@@ -396,23 +397,57 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       leaving.removeAll { now >= it.endMs }
       // Bound the leaving pile: the oldest are the most faded.
       val maxLeaving = maxOf(MIN_MAX_LEAVING, MAX_LEAVING_PER_SEGMENT * current.size)
-      while (leaving.size > maxLeaving) leaving.removeAt(0)
+      if (leaving.size > maxLeaving) {
+        // Drop the most faded first, so what disappears is already (nearly) invisible.
+        leaving.sortByDescending { it.lookAt(now).opacity }
+        while (leaving.size > maxLeaving) leaving.removeAt(leaving.size - 1)
+      }
       invalidate()
     }
 
     /** Draws the current frame; returns false once everything has settled or left. */
+    /** One node per blur level (index 1…), re-recorded every frame with that level's segments. */
+    private val levelNodes = arrayOfNulls<RenderNode>(BLUR_LEVELS)
+    private val levelSegments = Array(BLUR_LEVELS) { mutableListOf<Segment>() }
+
     fun draw(canvas: Canvas): Boolean {
       val now = AnimationUtils.currentAnimationTimeMillis()
       leaving.removeAll { now >= it.endMs }
       val isActive = leaving.isNotEmpty() || current.any { now < it.endMs }
       // Once settled, RN's own text drawing takes over (identical to <Text>).
       if (!isActive) return false
-      for (segment in leaving) drawSegment(canvas, segment, now)
-      for (segment in current) drawSegment(canvas, segment, now)
+
+      for (list in levelSegments) list.clear()
+      var maxBlur = 0f
+      for (segment in leaving) place(segment, now)
+      for (segment in current) place(segment, now)
+      for (list in levelSegments) for (segment in list) maxBlur = max(maxBlur, segment.maxBlur)
+
+      for (level in BLUR_LEVELS - 1 downTo 1) {
+        val segments = levelSegments[level]
+        if (segments.isEmpty()) continue
+        val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) blurEffect(level, maxBlur) else null
+        if (effect == null) {
+          for (segment in segments) canvas.drawRenderNode(segment.node)
+          continue
+        }
+        val group = levelNodes[level] ?: RenderNode("JBTextBlurLevel").also { levelNodes[level] = it }
+        val padding = (3 * maxBlur).roundToInt() + height
+        group.setPosition(-padding, -padding, width + padding, height + padding)
+        group.clipToBounds = false
+        group.setRenderEffect(effect)
+        val recording = group.beginRecording()
+        recording.translate(padding.toFloat(), padding.toFloat())
+        for (segment in segments) recording.drawRenderNode(segment.node)
+        group.endRecording()
+        canvas.drawRenderNode(group)
+      }
+      for (segment in levelSegments[0]) canvas.drawRenderNode(segment.node)
       return true
     }
 
-    private fun drawSegment(canvas: Canvas, segment: Segment, now: Long) {
+    /** Applies the segment's look to its node and files it under its blur level. */
+    private fun place(segment: Segment, now: Long) {
       val look = segment.lookAt(now)
       val node = segment.node
       node.translationX = segment.shiftX + look.translateX
@@ -420,10 +455,8 @@ class JBAnimatedTextView(context: Context) : ReactTextView(context) {
       node.scaleX = look.scale
       node.scaleY = look.scale
       node.alpha = look.opacity
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        node.setRenderEffect(if (segment.hasBlur || segment.role == Role.SETTLE) blurEffect(look.blur * segment.maxBlur) else null)
-      }
-      canvas.drawRenderNode(node)
+      if (look.opacity <= INVISIBLE_OPACITY) return
+      levelSegments[if (segment.maxBlur > 0f) blurLevel(look.blur) else 0].add(segment)
     }
 
     /**
