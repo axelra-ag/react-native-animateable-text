@@ -5,7 +5,7 @@ import { ScreenHeader } from '../ui/ScreenHeader';
 import { colors, GUTTER } from '../ui/theme';
 
 type Section = {
-  id: 'animated' | 'parity';
+  id: 'animated' | 'plain' | 'parity';
   title: string;
   description: string;
 };
@@ -16,6 +16,12 @@ const SECTIONS: Section[] = [
     title: 'Animated text',
     description:
       'Shared values and plain props driving the text, with contentTransition (none, numeric, blur, fade), direction, duration and font switches.',
+  },
+  {
+    id: 'plain',
+    title: 'Plain scroll',
+    description:
+      'Control screen for scroll performance: coloured cards with plain RN Text only, no AnimateableText or Reanimated.',
   },
   {
     id: 'parity',

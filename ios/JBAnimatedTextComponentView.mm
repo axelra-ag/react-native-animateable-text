@@ -16,8 +16,8 @@
 
 #import "JBTextTransitionAnimator.h"
 #import "JBTextTransitionPlan.h"
-#import "RCTConversions.h"
-#import "RCTFabricComponentsPlugins.h"
+#import <React/RCTConversions.h>
+#import <React/RCTFabricComponentsPlugins.h>
 
 using namespace facebook::react;
 

@@ -5,12 +5,14 @@ import { AnimatedTextScreen } from './src/animated/AnimatedTextScreen';
 import { IBM_PLEX_FONTS } from './src/animated/settings';
 import { HomeScreen } from './src/home/HomeScreen';
 import { ParityScreen } from './src/parity/ParityScreen';
+import { PlainScrollScreen } from './src/plain/PlainScrollScreen';
 
 LogBox.ignoreAllLogs();
 
 type Route =
   | { screen: 'home' }
   | { screen: 'animated' }
+  | { screen: 'plain' }
   | {
       screen: 'parity';
       page: number;
@@ -35,6 +37,7 @@ const parityRoute = (params: Record<string, string> = {}): Route => ({
 
 // animateabletext://home
 // animateabletext://animated
+// animateabletext://plain
 // animateabletext://parity?page=0&pageSize=4&perturb=1&autoAdvanceMs=2500&runId=abc
 function parseRoute(url: string | null): Route | null {
   if (!url) return null;
@@ -48,6 +51,7 @@ function parseRoute(url: string | null): Route | null {
   );
   if (match[1] === 'parity') return parityRoute(params);
   if (match[1] === 'animated') return { screen: 'animated' };
+  if (match[1] === 'plain') return { screen: 'plain' };
   // Content transitions used to be their own section.
   if (match[1] === 'transitions') return { screen: 'animated' };
   if (match[1] === 'home') return HOME;
@@ -97,6 +101,9 @@ export default function App() {
   }
   if (route.screen === 'animated') {
     return <AnimatedTextScreen onBack={goHome} />;
+  }
+  if (route.screen === 'plain') {
+    return <PlainScrollScreen onBack={goHome} />;
   }
   return <HomeScreen onOpen={(id) => setRoute(id === 'parity' ? parityRoute() : { screen: id })} />;
 }

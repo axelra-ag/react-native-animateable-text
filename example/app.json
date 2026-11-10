@@ -40,7 +40,9 @@
             "newArchEnabled": true
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-status-bar"
     ],
     "install": {
       "exclude": [
