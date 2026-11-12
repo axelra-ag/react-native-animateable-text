@@ -11,7 +11,7 @@ LogBox.ignoreAllLogs();
 
 type Route =
   | { screen: 'home' }
-  | { screen: 'animated' }
+  | { screen: 'animated'; params: Record<string, string>; requestId: number }
   | { screen: 'plain' }
   | {
       screen: 'parity';
@@ -36,7 +36,9 @@ const parityRoute = (params: Record<string, string> = {}): Route => ({
 });
 
 // animateabletext://home
-// animateabletext://animated
+// animateabletext://animated?transition=roll&stagger=30&duration=200&only=chart,slider&autorun=1
+// animateabletext://animated?only=key&autorun=1
+// animateabletext://animated?only=reveal&reveal=roll&revealDelay=300&autorun=1
 // animateabletext://plain
 // animateabletext://parity?page=0&pageSize=4&perturb=1&autoAdvanceMs=2500&runId=abc
 function parseRoute(url: string | null): Route | null {
@@ -50,10 +52,10 @@ function parseRoute(url: string | null): Route | null {
       .map((pair) => pair.split('=').map(decodeURIComponent))
   );
   if (match[1] === 'parity') return parityRoute(params);
-  if (match[1] === 'animated') return { screen: 'animated' };
+  if (match[1] === 'animated') return { screen: 'animated', params, requestId: Date.now() };
   if (match[1] === 'plain') return { screen: 'plain' };
   // Content transitions used to be their own section.
-  if (match[1] === 'transitions') return { screen: 'animated' };
+  if (match[1] === 'transitions') return { screen: 'animated', params, requestId: Date.now() };
   if (match[1] === 'home') return HOME;
   return null;
 }
@@ -100,10 +102,18 @@ export default function App() {
     );
   }
   if (route.screen === 'animated') {
-    return <AnimatedTextScreen onBack={goHome} />;
+    return <AnimatedTextScreen key={route.requestId} params={route.params} onBack={goHome} />;
   }
   if (route.screen === 'plain') {
     return <PlainScrollScreen onBack={goHome} />;
   }
-  return <HomeScreen onOpen={(id) => setRoute(id === 'parity' ? parityRoute() : { screen: id })} />;
+  return (
+    <HomeScreen
+      onOpen={(id) => {
+        if (id === 'parity') setRoute(parityRoute());
+        else if (id === 'animated') setRoute({ screen: id, params: {}, requestId: Date.now() });
+        else setRoute({ screen: id });
+      }}
+    />
+  );
 }

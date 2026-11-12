@@ -16,14 +16,21 @@ import { DemoCard } from '../ui/DemoCard';
 import { ScreenHeader } from '../ui/ScreenHeader';
 import { Segmented } from '../ui/Segmented';
 import { colors, GUTTER } from '../ui/theme';
+import { ChartScrubDemo } from './ChartScrubDemo';
 import { formatAmount, formatStopwatch, toArabicDigits } from './formatUtils';
+import { RevealDemo } from './RevealDemo';
+import { TransitionKeyDemo } from './TransitionKeyDemo';
 import {
-  DEFAULT_SETTINGS,
+  DELAYS,
   DIRECTIONS,
   DURATIONS,
   FONT_LABELS,
   FONTS,
+  MIN_INTERVALS,
+  SCOPES,
+  settingsFromParams,
   SettingsProvider,
+  STAGGERS,
   TRANSITIONS,
   UNITS,
   useContentTransition,
@@ -55,7 +62,7 @@ function SettingsCard({ settings, onChange }: { settings: Settings; onChange: (s
   return (
     <DemoCard
       title="Settings"
-      description="Applied to every demo. Transition 'none' is the plain animated text (no content transition). Unit: 'auto' animates only what changed, 'word' whole words, 'whole' the entire text."
+      description="Applied to every demo. Transition 'none' is the plain animated text (no content transition). 'roll' is made for fast changes (defaults: up, 200 ms, 30 ms stagger). Unit: 'auto' animates only what changed, 'word' whole words, 'whole' the entire text."
     >
       <SettingRow label="contentTransition">
         <Segmented
@@ -80,6 +87,33 @@ function SettingsCard({ settings, onChange }: { settings: Settings; onChange: (s
           value={settings.duration}
           onChange={(duration) => onChange({ ...settings, duration })}
           format={(value) => (value === 0 ? 'default' : `${value} ms`)}
+        />
+      </SettingRow>
+      <SettingRow label="stagger (delay per changed position)">
+        <Segmented
+          options={STAGGERS}
+          value={settings.stagger}
+          onChange={(stagger) => onChange({ ...settings, stagger })}
+          format={(value) => (value < 0 ? 'default' : `${value} ms`)}
+        />
+      </SettingRow>
+      <SettingRow label="scope (roll only: what rolls on a change)">
+        <Segmented options={SCOPES} value={settings.scope} onChange={(scope) => onChange({ ...settings, scope })} />
+      </SettingRow>
+      <SettingRow label="min interval (roll only: time between two rolls; faster changes are held back)">
+        <Segmented
+          options={MIN_INTERVALS}
+          value={settings.minInterval}
+          onChange={(minInterval) => onChange({ ...settings, minInterval })}
+          format={(value) => (value < 0 ? 'auto' : value === 0 ? 'off' : `${value} ms`)}
+        />
+      </SettingRow>
+      <SettingRow label="delay (between a change and its transition)">
+        <Segmented
+          options={DELAYS}
+          value={settings.delay}
+          onChange={(delay) => onChange({ ...settings, delay })}
+          format={(value) => (value === 0 ? 'none' : `${value} ms`)}
         />
       </SettingRow>
       <SettingRow label="font">
@@ -110,7 +144,7 @@ function StressText({ index, phase }: { index: number; phase: { value: number } 
   );
 }
 
-function StressDemo() {
+function StressDemo({ autorun = false }: { autorun?: boolean }) {
   const phase = useSharedValue(0);
   const frameCallback = useFrameCallback((frame) => {
     phase.value += (frame.timeSincePreviousFrame ?? 16) / 1000;
@@ -120,6 +154,11 @@ function StressDemo() {
     frameCallback.setActive(!isRunning);
     setIsRunning(!isRunning);
   };
+  React.useEffect(() => {
+    if (!autorun) return;
+    frameCallback.setActive(true);
+    setIsRunning(true);
+  }, [autorun, frameCallback]);
   return (
     <DemoCard
       title="Stress: 4 texts every frame"
@@ -135,9 +174,31 @@ function StressDemo() {
   );
 }
 
-function SliderDemo() {
+const AUTO_DRAG_PERIOD_MS = 3000;
+
+function SliderDemo({ autorun = false }: { autorun?: boolean }) {
   const value = useSharedValue('0');
   const animatedProps = useAnimatedProps(() => ({ text: value.value }));
+  // Stands in for a finger dragging the slider there and back: fast in the middle (a new
+  // value every frame), slowing to a stop at both ends.
+  const [sliderValue, setSliderValue] = React.useState(0);
+  const elapsed = useSharedValue(0);
+  const frameCallback = useFrameCallback((frame) => {
+    elapsed.value += frame.timeSincePreviousFrame ?? 16;
+    const progress = 0.5 - 0.5 * Math.cos((elapsed.value / AUTO_DRAG_PERIOD_MS) * 2 * Math.PI);
+    value.value = `${Math.round(progress * 10000)}`;
+  }, false);
+  const [isAutoDragging, setIsAutoDragging] = React.useState(false);
+  const setAutoDragging = (isActive: boolean) => {
+    frameCallback.setActive(isActive);
+    setIsAutoDragging(isActive);
+    if (!isActive) setSliderValue(Number(value.value));
+  };
+  React.useEffect(() => {
+    if (!autorun) return;
+    frameCallback.setActive(true);
+    setIsAutoDragging(true);
+  }, [autorun, frameCallback]);
   return (
     <DemoCard
       title="Slider → shared value"
@@ -152,12 +213,23 @@ function SliderDemo() {
         minimumValue={0}
         maximumValue={10000}
         step={1}
+        value={sliderValue}
         minimumTrackTintColor={colors.accent}
         thumbTintColor={colors.accent}
+        onSlidingStart={() => {
+          if (isAutoDragging) setAutoDragging(false);
+        }}
         onValueChange={([next]) => {
           value.value = `${next}`;
         }}
       />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Button
+          title={isAutoDragging ? 'Stop auto drag' : 'Auto drag'}
+          isSecondary
+          onPress={() => setAutoDragging(!isAutoDragging)}
+        />
+      </View>
     </DemoCard>
   );
 }
@@ -429,23 +501,37 @@ function MultilineDemo() {
   );
 }
 
-export function AnimatedTextScreen({ onBack }: { onBack: () => void }) {
-  const [settings, setSettings] = React.useState<Settings>(DEFAULT_SETTINGS);
+/**
+ * `params` come from the deep link (animateabletext://animated?transition=roll&only=chart&autorun=1):
+ * the settings to start with, `only` (comma-separated: settings, stress, slider, chart, …) to
+ * show just those cards (key, reveal, chart, stress, slider, …), and `autorun=1` to start the
+ * stress / auto-drag / auto-scrub demos, step through the transitionKey card and cycle the
+ * reveal mounts. The reveal card also reads `reveal` (type) and `revealDelay` (ms).
+ * Used for recordings and measurements without touching the screen.
+ */
+export function AnimatedTextScreen({ params = {}, onBack }: { params?: Record<string, string>; onBack: () => void }) {
+  const [settings, setSettings] = React.useState<Settings>(() => settingsFromParams(params));
+  const only = params.only ? params.only.split(',') : null;
+  const shows = (id: string) => only == null || only.includes(id);
+  const autorun = params.autorun === '1';
   return (
     <SettingsProvider value={settings}>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScreenHeader title="Animated text" onBack={onBack} />
         <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: 48, gap: 16 }}>
-          <SettingsCard settings={settings} onChange={setSettings} />
-          <StressDemo />
-          <SliderDemo />
-          <BalanceDemo />
-          <PercentageDemo />
-          <BoxedNumberDemo />
-          <CountUpDemo />
-          <StopwatchDemo />
-          <WordsDemo />
-          <MultilineDemo />
+          {shows('settings') ? <SettingsCard settings={settings} onChange={setSettings} /> : null}
+          {shows('key') ? <TransitionKeyDemo autorun={autorun} /> : null}
+          {shows('reveal') ? <RevealDemo autorun={autorun} params={params} /> : null}
+          {shows('chart') ? <ChartScrubDemo autorun={autorun} /> : null}
+          {shows('stress') ? <StressDemo autorun={autorun} /> : null}
+          {shows('slider') ? <SliderDemo autorun={autorun} /> : null}
+          {shows('balance') ? <BalanceDemo /> : null}
+          {shows('percentage') ? <PercentageDemo /> : null}
+          {shows('boxed') ? <BoxedNumberDemo /> : null}
+          {shows('countup') ? <CountUpDemo /> : null}
+          {shows('stopwatch') ? <StopwatchDemo /> : null}
+          {shows('words') ? <WordsDemo /> : null}
+          {shows('multiline') ? <MultilineDemo /> : null}
         </ScrollView>
       </View>
     </SettingsProvider>

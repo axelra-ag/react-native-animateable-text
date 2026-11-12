@@ -66,6 +66,18 @@ export const PARITY_CASES: ParityCase[] = [
     transition: { from: 'SAR 1,204.50', type: 'numeric' },
   },
   {
+    id: 'transition-roll',
+    text: 'SAR 15,374.30',
+    style: { fontSize: 22, fontWeight: '700' },
+    transition: { from: 'SAR 751.61', type: 'roll' },
+  },
+  {
+    id: 'transition-roll-mask',
+    text: '*****',
+    style: { fontSize: 22, fontWeight: '700', textAlign: 'right' },
+    transition: { from: '407.55', type: 'roll' },
+  },
+  {
     id: 'transition-blur-ar',
     text: 'مكتمل',
     style: { fontSize: 20, writingDirection: 'rtl', textAlign: 'right' },

@@ -1,32 +1,63 @@
 # Shared fixtures for the text transition plan (iOS JBTextTransitionPlan, Android TextTransitionPlan).
-# Columns (tab-separated): mode[:unit], direction option, old text, new text, expected direction (up|down), expected ops.
-# Unit is auto (default), word or whole.
+# Columns (tab-separated): mode[:unit[:scope]], direction option, old text, new text, expected direction (up|down), expected ops, expected stagger.
+# Unit is auto (default), word or whole. Scope (roll only) is all (default), numbers or changed.
 # Ops in logical order: =kept -removed +inserted. A space inside a segment is written as ␠. Empty text is written as ∅.
-numeric	auto	1,204.50	1,205.00	up	=1 =, =2 =0 -4 +5 =. -5 +0 =0
-numeric	auto	999	1,000	up	+1 +, -9 +0 -9 +0 -9 +0
-numeric	auto	1,000	999	down	-1 -, -0 +9 -0 +9 -0 +9
-numeric	auto	SAR 12.50	SAR 9.75	down	=S =A =R =␠ -1 -2 +9 =. -5 +7 -0 +5
-numeric	auto	١٢٫٥٠ ر.س	١٣٫٥٠ ر.س	up	=١ -٢ +٣ =٫ =٥ =٠ =␠ =ر =. =س
-numeric	auto	-5	-12	down	=- +1 -5 +2
-numeric	auto	+4.20%	-1.05%	down	-+ +- -4 +1 =. -2 +0 -0 +5 =%
-numeric	auto	∅	5	up	+5
-numeric	auto	12	12	up	=1 =2
-numeric	up	5	3	up	-5 +3
-numeric	down	3	5	down	-3 +5
-blur	auto	Hello world	Hello there	up	=H =e =l =l =o =␠ -w -o +t +h +e =r -l -d +e
-blur	auto	الرصيد ١٠	الرصيد ٢٠	up	=الرصيد =␠ -١ +٢ =٠
-blur	auto	مرحبا	مرحبا بك	up	=مرحبا +␠ +بك
-blur	auto	مَرحَبا	مرحبا	up	-مَرحَبا +مرحبا
-fade	auto	abc	abd	up	=a =b -c +d
-blur	auto	a👍🏽b	a👍b	up	=a -👍🏽 +👍 =b
-blur	auto	a👨‍👩‍👧b	a👨‍👩‍👦b	up	=a -👨‍👩‍👧 +👨‍👩‍👦 =b
-blur	auto	🇸🇦🇺🇸	🇸🇦	up	=🇸🇦 -🇺🇸
-blur:word	auto	Hello world	Hello there	up	=Hello =␠ -world +there
-blur:word	auto	Pending payment	Pending transfer	up	=Pending =␠ -payment +transfer
-numeric:word	auto	SAR 1,204.50	SAR 1,205.50	up	=SAR =␠ -1,204.50 +1,205.50
-blur:word	auto	قيد الانتظار	قيد المعالجة	up	=قيد =␠ -الانتظار +المعالجة
-blur:word	auto	a  b	a b	up	=a =␠ -␠ =b
-blur:whole	auto	Hello world	Hello there	up	-Hello␠world +Hello␠there
-numeric:whole	auto	5	3	down	-5 +3
-numeric:whole	auto	SAR 9.99	SAR 10.00	up	-SAR␠9.99 +SAR␠10.00
-fade:whole	auto	∅	New	up	+New
+# Stagger: the stagger index of every -removed/+inserted op in order (∅ when nothing changed): its position in logical
+# order counted from the first changed position. A removed segment and the one replacing it share a position.
+# roll uses numeric's slots; scope all replaces every segment, numbers everything but a shared non-digit
+# prefix/suffix, changed only what changed. JS sends direction "up" for it unless told otherwise.
+# reveal:<type>[:unit] is the reveal plan (revealPlanForText / TextTransitionPlan.reveal): old text is always ∅,
+# every segment is inserted, stagger counts from the first segment. Direction is up or down; anything else is up.
+numeric	auto	1,204.50	1,205.00	up	=1 =, =2 =0 -4 +5 =. -5 +0 =0	0 0 2 2
+numeric	auto	999	1,000	up	+1 +, -9 +0 -9 +0 -9 +0	0 1 2 2 3 3 4 4
+numeric	auto	1,000	999	down	-1 -, -0 +9 -0 +9 -0 +9	0 1 2 2 3 3 4 4
+numeric	auto	SAR 12.50	SAR 9.75	down	=S =A =R =␠ -1 -2 +9 =. -5 +7 -0 +5	0 1 1 3 3 4 4
+numeric	auto	١٢٫٥٠ ر.س	١٣٫٥٠ ر.س	up	=١ -٢ +٣ =٫ =٥ =٠ =␠ =ر =. =س	0 0
+numeric	auto	-5	-12	down	=- +1 -5 +2	0 1 1
+numeric	auto	+4.20%	-1.05%	down	-+ +- -4 +1 =. -2 +0 -0 +5 =%	0 0 1 1 3 3 4 4
+numeric	auto	∅	5	up	+5	0
+numeric	auto	12	12	up	=1 =2	∅
+numeric	up	5	3	up	-5 +3	0 0
+numeric	down	3	5	down	-3 +5	0 0
+blur	auto	Hello world	Hello there	up	=H =e =l =l =o =␠ -w -o +t +h +e =r -l -d +e	0 1 0 1 2 4 5 5
+blur	auto	الرصيد ١٠	الرصيد ٢٠	up	=الرصيد =␠ -١ +٢ =٠	0 0
+blur	auto	مرحبا	مرحبا بك	up	=مرحبا +␠ +بك	0 1
+blur	auto	مَرحَبا	مرحبا	up	-مَرحَبا +مرحبا	0 0
+fade	auto	abc	abd	up	=a =b -c +d	0 0
+blur	auto	a👍🏽b	a👍b	up	=a -👍🏽 +👍 =b	0 0
+blur	auto	a👨‍👩‍👧b	a👨‍👩‍👦b	up	=a -👨‍👩‍👧 +👨‍👩‍👦 =b	0 0
+blur	auto	🇸🇦🇺🇸	🇸🇦	up	=🇸🇦 -🇺🇸	0
+blur:word	auto	Hello world	Hello there	up	=Hello =␠ -world +there	0 0
+blur:word	auto	Pending payment	Pending transfer	up	=Pending =␠ -payment +transfer	0 0
+numeric:word	auto	SAR 1,204.50	SAR 1,205.50	up	=SAR =␠ -1,204.50 +1,205.50	0 0
+blur:word	auto	قيد الانتظار	قيد المعالجة	up	=قيد =␠ -الانتظار +المعالجة	0 0
+blur:word	auto	a  b	a b	up	=a =␠ -␠ =b	0
+blur:whole	auto	Hello world	Hello there	up	-Hello␠world +Hello␠there	0 0
+numeric:whole	auto	5	3	down	-5 +3	0 0
+numeric:whole	auto	SAR 9.99	SAR 10.00	up	-SAR␠9.99 +SAR␠10.00	0 0
+fade:whole	auto	∅	New	up	+New	0
+roll	up	0.00	407.55	up	+4 +0 -0 +7 -. +. -0 +5 -0 +5	0 1 2 2 3 3 4 4 5 5
+roll	up	881.23	751.61	up	-8 +7 -8 +5 -1 +1 -. +. -2 +6 -3 +1	0 0 1 1 2 2 3 3 4 4 5 5
+roll	auto	881.23	751.61	down	-8 +7 -8 +5 -1 +1 -. +. -2 +6 -3 +1	0 0 1 1 2 2 3 3 4 4 5 5
+roll	up	407.55	*****	up	-4 -0 +* -7 +* -. +* -5 +* -5 +*	0 1 1 2 2 3 3 4 4 5 5
+roll	up	*****	407.55	up	+4 -* +0 -* +7 -* +. -* +5 -* +5	0 1 1 2 2 3 3 4 4 5 5
+roll	up	751.61	15,374.30	up	+1 +5 +, -7 +3 -5 +7 -1 +4 -. +. -6 +3 -1 +0	0 1 2 3 3 4 4 5 5 6 6 7 7 8 8
+roll	up	SAR 1,204.50	SAR 1,204.51	up	-S +S -A +A -R +R -␠ +␠ -1 +1 -, +, -2 +2 -0 +0 -4 +4 -. +. -5 +5 -0 +1	0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11
+roll	up	١٢٫٥٠ ر.س	١٣٫٧٥ ر.س	up	-١ +١ -٢ +٣ -٫ +٫ -٥ +٧ -٠ +٥ -␠ +␠ -ر +ر -. +. -س +س	0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8
+roll:whole	up	5	3	up	-5 +3	0 0
+roll:auto:numbers	up	SAR 1,204.50	SAR 1,204.51	up	=S =A =R =␠ -1 +1 -, +, -2 +2 -0 +0 -4 +4 -. +. -5 +5 -0 +1	0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7
+roll:auto:numbers	up	SAR 751.61	SAR 15,374.30	up	=S =A =R =␠ +1 +5 +, -7 +3 -5 +7 -1 +4 -. +. -6 +3 -1 +0	0 1 2 3 3 4 4 5 5 6 6 7 7 8 8
+roll:auto:numbers	up	١٢٫٥٠ ر.س	١٣٫٧٥ ر.س	up	-١ +١ -٢ +٣ -٫ +٫ -٥ +٧ -٠ +٥ =␠ =ر =. =س	0 0 1 1 2 2 3 3 4 4
+roll:auto:numbers	up	+4.20%	-1.05%	up	-+ +- -4 +1 -. +. -2 +0 -0 +5 =%	0 0 1 1 2 2 3 3 4 4
+roll:auto:changed	up	SAR 1,204.50	SAR 1,204.51	up	=S =A =R =␠ =1 =, =2 =0 =4 =. =5 -0 +1	0 0
+roll:auto:changed	up	881.23	751.61	up	-8 +7 -8 +5 =1 =. -2 +6 -3 +1	0 0 1 1 4 4 5 5
+reveal:roll	up	∅	1,234	up	+1 +, +2 +3 +4	0 1 2 3 4
+reveal:roll	down	∅	SAR 9.50	down	+S +A +R +␠ +9 +. +5 +0	0 1 2 3 4 5 6 7
+reveal:roll	auto	∅	*****	up	+* +* +* +* +*	0 1 2 3 4
+reveal:numeric	up	∅	-5%	up	+- +5 +%	0 1 2
+reveal:blur	up	∅	مرحبا بك	up	+مرحبا +␠ +بك	0 1 2
+reveal:blur	up	∅	١٢٫٥٠ ر.س	up	+١ +٢ +٫ +٥ +٠ +␠ +ر +. +س	0 1 2 3 4 5 6 7 8
+reveal:fade:word	up	∅	Hello there	up	+Hello +␠ +there	0 1 2
+reveal:roll:word	up	∅	SAR 1,204.50	up	+SAR +␠ +1,204.50	0 1 2
+reveal:numeric:whole	down	∅	SAR 9.50	down	+SAR␠9.50	0
+reveal:blur	up	∅	a👨‍👩‍👧b	up	+a +👨‍👩‍👧 +b	0 1 2

@@ -8,7 +8,7 @@ import Touchable from "react-native/Libraries/Components/Touchable/Touchable";
 // @ts-ignore
 import createReactNativeComponentClass from "react-native/Libraries/Renderer/shims/createReactNativeComponentClass";
 import nullthrows from "nullthrows";
-import type { AnimateableTextProps, ContentTransition } from "./TextProps";
+import type { AnimateableTextProps, ContentTransition, Reveal, RevealType } from "./TextProps";
 import type { Text as IText } from "react-native";
 
 const PRESS_RECT_OFFSET = { top: 20, left: 20, right: 20, bottom: 30 };
@@ -38,6 +38,19 @@ const viewConfig = {
     contentTransitionDuration: true,
     contentTransitionDirection: true,
     contentTransitionUnit: true,
+    contentTransitionStagger: true,
+    contentTransitionScope: true,
+    contentTransitionMinInterval: true,
+    contentTransitionDelay: true,
+    // Any string / number / boolean / array: normalised natively (TransitionKey.h / .kt), so it
+    // can also come from useAnimatedProps.
+    transitionKey: true,
+    revealType: true,
+    revealDuration: true,
+    revealDirection: true,
+    revealUnit: true,
+    revealStagger: true,
+    revealDelay: true,
   },
   directEventTypes: {
     topTextLayout: { registrationName: "onTextLayout" },
@@ -49,11 +62,32 @@ const viewConfig = {
 const toNativeTransitionProps = (transition: ContentTransition | undefined) => {
   const options =
     typeof transition === "object" ? transition : { type: transition ?? "none" };
+  // `roll` is tuned for fast changes: always up, short, one position after another.
+  const isRoll = options.type === "roll";
   return {
     contentTransitionType: options.type,
-    contentTransitionDuration: options.duration ?? 0,
-    contentTransitionDirection: options.direction ?? "auto",
+    contentTransitionDuration: options.duration ?? (isRoll ? 200 : 0),
+    contentTransitionDirection: options.direction ?? (isRoll ? "up" : "auto"),
     contentTransitionUnit: options.unit ?? "auto",
+    contentTransitionStagger: options.stagger ?? (isRoll ? 30 : 0),
+    contentTransitionScope: options.scope ?? "all",
+    // -1: automatic.
+    contentTransitionMinInterval: options.minInterval ?? -1,
+    contentTransitionDelay: Math.max(0, options.delay ?? 0),
+  };
+};
+
+const toNativeRevealProps = (reveal: Reveal | undefined) => {
+  const options: Omit<Partial<Exclude<Reveal, string>>, "type"> & { type: RevealType } =
+    typeof reveal === "object" ? reveal : { type: reveal ?? "none" };
+  const isRoll = options.type === "roll";
+  return {
+    revealType: options.type,
+    revealDuration: options.duration ?? (isRoll ? 200 : 0),
+    revealDirection: options.direction === "down" ? "down" : "up",
+    revealUnit: options.unit ?? "auto",
+    revealStagger: options.stagger ?? (isRoll ? 30 : 0),
+    revealDelay: Math.max(0, options.delay ?? 0),
   };
 };
 
@@ -170,15 +204,17 @@ const TouchableText = forwardRef<IText, AnimateableTextProps>(
         | undefined;
     }
 
-    const { contentTransition, ...nativeProps } = props;
+    const { contentTransition, reveal, ...nativeProps } = props;
     const renderedProps: AnimateableTextProps &
-      ReturnType<typeof toNativeTransitionProps> & {
+      ReturnType<typeof toNativeTransitionProps> &
+      ReturnType<typeof toNativeRevealProps> & {
         ref: Ref<IText>;
         isHighlighted: boolean;
         selectionColor: (symbol & { __TYPE__: "Color" }) | undefined;
       } = {
       ...nativeProps,
       ...toNativeTransitionProps(contentTransition),
+      ...toNativeRevealProps(reveal),
       // Same default as RN's <Text>; the native default is "clip", which also
       // disables adjustsFontSizeToFit on iOS.
       ellipsizeMode: props.ellipsizeMode ?? "tail",

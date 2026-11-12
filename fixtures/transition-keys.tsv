@@ -1,0 +1,36 @@
+# Shared fixtures for the transitionKey encoding (cpp/.../JBAnimatedText/TransitionKey.h, Android TransitionKey.kt).
+# Columns (tab-separated): the key as JSON, its canonical string.
+# Two keys are the same when their canonical strings are equal. Rules:
+#   null (inside an array; undefined too) -> null       booleans -> true / false
+#   numbers: integral and |n| <= 2^53 -> decimal integer (-0 -> 0); otherwise 0x + the 16 hex digits of the IEEE-754 bits
+#   strings -> "…" with \ and " escaped             arrays -> [a,b,…] (nested arrays too)
+#   objects (not supported) -> {}
+# A top-level null/undefined is not a key (no key: every change animates); it never reaches the encoder.
+true	true
+false	false
+0	0
+1	1
+1.0	1
+-2	-2
+-0.0	0
+9007199254740992	9007199254740992
+0.5	0x3fe0000000000000
+-1.25	0xbff4000000000000
+1e300	0x7e37e43c8800759c
+"1"	"1"
+""	""
+"true"	"true"
+"a\"b"	"a\"b"
+"a\\b"	"a\\b"
+"SAR"	"SAR"
+"ر.س"	"ر.س"
+"a,b"	"a,b"
+["a,b"]	["a,b"]
+["a","b"]	["a","b"]
+[true,"SAR",null]	[true,"SAR",null]
+[false,"SAR",null]	[false,"SAR",null]
+[]	[]
+[1,"1",true]	[1,"1",true]
+[[1],2]	[[1],2]
+{"a":1}	{}
+[{"a":1},2]	[{},2]

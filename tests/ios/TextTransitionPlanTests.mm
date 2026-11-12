@@ -21,22 +21,37 @@ int main(int argc, const char *argv[])
       NSArray<NSString *> *columns = [line componentsSeparatedByString:@"\t"];
       NSString *oldText = fromFixture(columns[2]);
       NSString *newText = fromFixture(columns[3]);
-      // Mode column: "mode" or "mode:unit".
+      // Mode column: "mode", "mode:unit" or "mode:unit:scope"; "reveal:mode[:unit]" for a reveal.
       NSArray<NSString *> *modeAndUnit = [columns[0] componentsSeparatedByString:@":"];
-      NSString *unit = modeAndUnit.count > 1 ? modeAndUnit[1] : @"auto";
-      JBTextTransitionPlan *plan = [JBTextTransitionPlan planFromText:oldText
-                                                               toText:newText
-                                                                 mode:[JBTextTransitionPlan modeFromString:modeAndUnit[0]]
-                                                            direction:columns[1]
-                                                                 unit:[JBTextTransitionPlan unitFromString:unit]];
+      JBTextTransitionPlan *plan;
+      if ([modeAndUnit[0] isEqualToString:@"reveal"]) {
+        NSString *unit = modeAndUnit.count > 2 ? modeAndUnit[2] : @"auto";
+        if (oldText.length > 0) printf("note: reveal rows ignore the old text (%s)\n", columns[2].UTF8String);
+        plan = [JBTextTransitionPlan revealPlanForText:newText
+                                                  mode:[JBTextTransitionPlan modeFromString:modeAndUnit[1]]
+                                             direction:columns[1]
+                                                  unit:[JBTextTransitionPlan unitFromString:unit]];
+      } else {
+        NSString *unit = modeAndUnit.count > 1 ? modeAndUnit[1] : @"auto";
+        plan = [JBTextTransitionPlan planFromText:oldText
+                                           toText:newText
+                                             mode:[JBTextTransitionPlan modeFromString:modeAndUnit[0]]
+                                        direction:columns[1]
+                                             unit:[JBTextTransitionPlan unitFromString:unit]
+                                            scope:[JBTextTransitionPlan
+                                                      scopeFromString:modeAndUnit.count > 2 ? modeAndUnit[2] : @"all"]];
+      }
       NSString *direction = plan.direction > 0 ? @"up" : @"down";
       NSString *ops = [plan fixtureDescriptionWithOldText:oldText newText:newText];
+      NSString *stagger = [plan staggerFixtureDescription];
+      NSString *expectedStagger = columns.count > 6 ? columns[6] : @"(missing)";
       total++;
-      if (![direction isEqualToString:columns[4]] || ![ops isEqualToString:columns[5]]) {
+      if (![direction isEqualToString:columns[4]] || ![ops isEqualToString:columns[5]] ||
+          ![stagger isEqualToString:expectedStagger]) {
         failures++;
-        printf("FAIL  %s  %s → %s\n  expected: %s  %s\n  actual:   %s  %s\n", columns[0].UTF8String,
+        printf("FAIL  %s  %s → %s\n  expected: %s  %s  [%s]\n  actual:   %s  %s  [%s]\n", columns[0].UTF8String,
                columns[2].UTF8String, columns[3].UTF8String, columns[4].UTF8String, columns[5].UTF8String,
-               direction.UTF8String, ops.UTF8String);
+               expectedStagger.UTF8String, direction.UTF8String, ops.UTF8String, stagger.UTF8String);
       }
     }
     printf("iOS transition plan: %d/%d fixtures passed\n", total - failures, total);

@@ -13,7 +13,16 @@ enum class TextTransitionMode {
   NONE,
   NUMERIC,
   BLUR,
-  FADE;
+  FADE,
+  /**
+   * Numeric's segmentation and slots with its own look (short rise, no shrink, staggered).
+   * Which segments are replaced on a change is its scope (default: all of them).
+   */
+  ROLL;
+
+  /** Roll shares numeric's segmentation, slots and fallbacks. */
+  val isNumeric: Boolean
+    get() = this == NUMERIC || this == ROLL
 
   companion object {
     fun fromString(value: String?): TextTransitionMode =
@@ -21,6 +30,7 @@ enum class TextTransitionMode {
           "numeric" -> NUMERIC
           "blur" -> BLUR
           "fade" -> FADE
+          "roll" -> ROLL
           else -> NONE
         }
   }
@@ -45,6 +55,25 @@ enum class TextTransitionUnit {
   }
 }
 
+/** Roll only: which segments are replaced on a change. */
+enum class TextTransitionScope {
+  /** Every segment, unchanged ones too. */
+  ALL,
+  /** The number: everything but a shared non-digit prefix and suffix (labels like "SAR "). */
+  NUMBERS,
+  /** Only segments that changed (what numeric does). */
+  CHANGED;
+
+  companion object {
+    fun fromString(value: String?): TextTransitionScope =
+        when (value) {
+          "numbers" -> NUMBERS
+          "changed" -> CHANGED
+          else -> ALL
+        }
+  }
+}
+
 enum class SegmentChange {
   KEPT,
   REMOVED,
@@ -52,13 +81,28 @@ enum class SegmentChange {
 }
 
 /** Ranges are [start, end) UTF-16 indices; null when the op has no side in that text. */
-data class TextTransitionOp(val change: SegmentChange, val oldRange: IntRange?, val newRange: IntRange?)
+data class TextTransitionOp(val change: SegmentChange, val oldRange: IntRange?, val newRange: IntRange?) {
+  /**
+   * Position of a REMOVED/INSERTED op in logical order, counted from the first changed
+   * position (unchanged positions in between count too). A REMOVED and the INSERTED that
+   * replaces it share a position. 0 for KEPT. Its start is delayed by index × stagger.
+   */
+  var staggerIndex: Int = 0
+    internal set
+}
 
 class TextTransitionPlan(
     val ops: List<TextTransitionOp>,
     /** 1: content moves up (counting up), -1: moves down. */
     val direction: Int,
 ) {
+  /** Largest staggerIndex in [ops]. */
+  val maxStaggerIndex: Int = assignStaggerIndices(ops)
+
+  /** Fixture format: staggerIndex of every REMOVED/INSERTED op in order, "∅" when there is none. */
+  fun staggerFixtureDescription(): String =
+      ops.filter { it.change != SegmentChange.KEPT }.joinToString(" ") { it.staggerIndex.toString() }.ifEmpty { "∅" }
+
   fun fixtureDescription(oldText: String, newText: String): String =
       ops.joinToString(" ") { op ->
         val segment =
@@ -84,6 +128,7 @@ class TextTransitionPlan(
         mode: TextTransitionMode,
         direction: String?,
         unit: TextTransitionUnit = TextTransitionUnit.AUTO,
+        scope: TextTransitionScope = TextTransitionScope.ALL,
     ): TextTransitionPlan {
       val oldSegments = segmentText(oldText, unit)
       val newSegments = segmentText(newText, unit)
@@ -91,14 +136,28 @@ class TextTransitionPlan(
       if (unit == TextTransitionUnit.WHOLE) {
         return TextTransitionPlan(wholeText(oldText, newText).ops, resolvedDirection)
       }
-      if (mode == TextTransitionMode.NUMERIC) {
-        return TextTransitionPlan(numericOps(oldSegments, newSegments), resolvedDirection)
+      if (mode.isNumeric) {
+        return TextTransitionPlan(
+            numericOps(
+                oldSegments,
+                newSegments,
+                if (mode == TextTransitionMode.ROLL) scope else TextTransitionScope.CHANGED),
+            resolvedDirection)
       }
       if (oldSegments.size > MAX_LCS_SEGMENTS || newSegments.size > MAX_LCS_SEGMENTS) {
         return wholeText(oldText, newText)
       }
       return TextTransitionPlan(lcsOps(oldSegments, newSegments), resolvedDirection)
     }
+
+    /**
+     * Reveal: every segment of [text] arrives (there is no old text), in logical order, so its
+     * stagger index counts from the first segment. Same segmentation as [plan] with [mode] and
+     * [unit]. [direction] is "up" or "down" (anything else: up).
+     */
+    fun reveal(text: String, mode: TextTransitionMode, direction: String?, unit: TextTransitionUnit): TextTransitionPlan =
+        // From empty text every segment is inserted: numeric slots, LCS and whole text agree.
+        plan("", text, mode, if (direction == "down") "down" else "up", unit, TextTransitionScope.ALL)
 
     /** The segments [plan] works with, as [start, end) ranges. */
     fun segmentRanges(text: String, unit: TextTransitionUnit = TextTransitionUnit.AUTO): List<IntRange> =
@@ -115,6 +174,34 @@ class TextTransitionPlan(
 }
 
 private data class Segment(val range: IntRange, val text: String)
+
+// Positions in logical order: a KEPT op is one position; a run of REMOVED ops followed by
+// INSERTED ops shares positions, aligned at the run's trailing end when more were removed
+// (numeric slots) and at its start otherwise. Indices count from the first changed position.
+private fun assignStaggerIndices(ops: List<TextTransitionOp>): Int {
+  var position = 0
+  var firstChanged = -1
+  var i = 0
+  while (i < ops.size) {
+    if (ops[i].change == SegmentChange.KEPT) {
+      position++
+      i++
+      continue
+    }
+    val runStart = i
+    while (i < ops.size && ops[i].change == SegmentChange.REMOVED) i++
+    val removed = i - runStart
+    val insertedStart = i
+    while (i < ops.size && ops[i].change == SegmentChange.INSERTED) i++
+    val inserted = i - insertedStart
+    if (firstChanged < 0) firstChanged = position
+    for (k in 0 until removed) ops[runStart + k].staggerIndex = position + k - firstChanged
+    val insertedOffset = maxOf(0, removed - inserted)
+    for (k in 0 until inserted) ops[insertedStart + k].staggerIndex = position + insertedOffset + k - firstChanged
+    position += maxOf(removed, inserted)
+  }
+  return ops.maxOfOrNull { it.staggerIndex } ?: 0
+}
 
 // Letters of scripts whose glyphs join their neighbours. Splitting these per
 // character would break the shaping, so they are grouped into words.
@@ -239,7 +326,16 @@ private fun resolveDirection(oldText: String, newText: String, direction: String
 
 // Shared non-digit prefix and suffix (labels like "SAR ", "%", " ر.س") stay put;
 // the rest is aligned from the trailing end so units stay over units.
-private fun numericOps(oldSegments: List<Segment>, newSegments: List<Segment>): List<TextTransitionOp> {
+// The slots are the same for every scope. CHANGED: a slot whose segment did not change is
+// kept. NUMBERS: the shared prefix and suffix are kept, every slot in between is replaced
+// (REMOVED + INSERTED) even when its segment is the same. ALL: every slot is replaced.
+private fun numericOps(
+    oldSegments: List<Segment>,
+    newSegments: List<Segment>,
+    scope: TextTransitionScope,
+): List<TextTransitionOp> {
+  val keepsLabels = scope != TextTransitionScope.ALL
+  val keepsUnchanged = scope == TextTransitionScope.CHANGED
   val n = oldSegments.size
   val m = newSegments.size
   var prefix = 0
@@ -258,8 +354,16 @@ private fun numericOps(oldSegments: List<Segment>, newSegments: List<Segment>): 
   }
 
   val ops = mutableListOf<TextTransitionOp>()
+  fun addUnchanged(oldRange: IntRange, newRange: IntRange) {
+    if (keepsLabels) {
+      ops.add(TextTransitionOp(SegmentChange.KEPT, oldRange, newRange))
+    } else {
+      ops.add(TextTransitionOp(SegmentChange.REMOVED, oldRange, null))
+      ops.add(TextTransitionOp(SegmentChange.INSERTED, null, newRange))
+    }
+  }
   for (k in 0 until prefix) {
-    ops.add(TextTransitionOp(SegmentChange.KEPT, oldSegments[k].range, newSegments[k].range))
+    addUnchanged(oldSegments[k].range, newSegments[k].range)
   }
 
   val reversedMiddle = mutableListOf<TextTransitionOp>()
@@ -268,7 +372,7 @@ private fun numericOps(oldSegments: List<Segment>, newSegments: List<Segment>): 
   for (k in 0 until maxOf(oldMiddle, newMiddle)) {
     val o = if (k < oldMiddle) oldSegments[n - suffix - 1 - k] else null
     val w = if (k < newMiddle) newSegments[m - suffix - 1 - k] else null
-    if (o != null && w != null && o.text == w.text) {
+    if (keepsUnchanged && o != null && w != null && o.text == w.text) {
       reversedMiddle.add(TextTransitionOp(SegmentChange.KEPT, o.range, w.range))
       continue
     }
@@ -279,7 +383,7 @@ private fun numericOps(oldSegments: List<Segment>, newSegments: List<Segment>): 
   ops.addAll(reversedMiddle.asReversed())
 
   for (k in suffix - 1 downTo 0) {
-    ops.add(TextTransitionOp(SegmentChange.KEPT, oldSegments[n - 1 - k].range, newSegments[m - 1 - k].range))
+    addUnchanged(oldSegments[n - 1 - k].range, newSegments[m - 1 - k].range)
   }
   return ops
 }

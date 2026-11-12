@@ -27,7 +27,12 @@ export const AnimateableText = React.forwardRef(
       []
     );
 
-    const { contentTransition: _contentTransition, ...textProps } = props;
+    const {
+      contentTransition: _contentTransition,
+      reveal: _reveal,
+      transitionKey: _transitionKey,
+      ...textProps
+    } = props;
     return (
       <Text ref={animatedTextRef} {...textProps}>
         {text}

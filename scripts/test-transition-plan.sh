@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs the shared transition-plan fixtures against the iOS (macOS build) and,
+# Runs the shared transition-plan and transition-key fixtures against the iOS (macOS build) and,
 # with --android, the Android implementation.
 set -euo pipefail
 
@@ -13,6 +13,12 @@ clang++ -std=c++17 -fobjc-arc -framework Foundation \
   "$ROOT/tests/ios/TextTransitionPlanTests.mm" \
   -o "$BUILD_DIR/transition-plan-tests"
 "$BUILD_DIR/transition-plan-tests" "$ROOT/fixtures/text-transitions.tsv"
+
+clang++ -std=c++20 -fobjc-arc -framework Foundation \
+  -I "$ROOT/cpp/react/renderer/components/JBAnimatedText" \
+  "$ROOT/tests/ios/TransitionKeyTests.mm" \
+  -o "$BUILD_DIR/transition-key-tests"
+"$BUILD_DIR/transition-key-tests" "$ROOT/fixtures/transition-keys.tsv"
 
 if [[ "${1:-}" == "--android" ]]; then
   cd "$ROOT/example/android"

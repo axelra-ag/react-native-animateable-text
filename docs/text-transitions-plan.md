@@ -1,6 +1,6 @@
 # Text transitions — plan
 
-Status: phases 0–2 done (prototype) · Branch: `feat/text-transitions` · Base: `0.19.3` (RN 0.86.3, Fabric only)
+Status: phases 0–2 and 4 done (prototype; `reveal="stream"` not implemented) · Branch: `feat/text-transitions` · Base: `0.19.3` (RN 0.86.3, Fabric only)
 
 ## Goal
 
@@ -9,7 +9,7 @@ Let `AnimateableText` animate its text natively, opted into with one prop:
 ```tsx
 <AnimateableText text={balance} contentTransition="numeric" />
 <AnimateableText text={title} reveal="blur" />
-<AnimateableText text={reply} reveal="stream" />
+<AnimateableText text={reply} reveal="stream" /> // planned, not implemented
 ```
 
 Three effects, one engine:
@@ -18,7 +18,7 @@ Three effects, one engine:
 |---|---|---|---|---|
 | Content transition (SwiftUI `numericText`) | `text` changes | changed segments of old text | changed segments of new text | together, spring |
 | Reveal | first non-empty text | nothing | every segment | staggered |
-| Stream (AI chat) | `text` grows | nothing | appended segments | steady rate, catches up |
+| Stream (AI chat) — not implemented | `text` grows | nothing | appended segments | steady rate, catches up |
 
 ## Principles
 
@@ -44,31 +44,31 @@ Three effects, one engine:
 
 ```ts
 type ContentTransition =
-  | 'none'
-  | 'numeric'
-  | 'blur'
-  | 'fade'
+  | 'none' | 'numeric' | 'roll' | 'blur' | 'fade'
   | {
-      type: 'numeric' | 'blur' | 'fade';
-      duration?: number;
-      direction?: 'auto' | 'up' | 'down';
+      type: 'none' | 'numeric' | 'roll' | 'blur' | 'fade';
+      duration?: number;            // ms; default 500, roll 200
+      direction?: 'auto' | 'up' | 'down'; // default auto, roll up
+      unit?: 'auto' | 'word' | 'whole';
+      stagger?: number;             // ms; default 0, roll 30; spread capped at 300 ms
+      scope?: 'all' | 'numbers' | 'changed'; // roll only; default all
+      minInterval?: number;         // ms, roll only; default automatic, 0 off
+      delay?: number;               // ms; default 0 (see "contentTransition delay")
     };
 
+// Implemented (see "reveal and transitionKey — done" below).
 type Reveal =
-  | 'none'
-  | 'blur'
-  | 'fade'
-  | 'stream'
+  | 'none' | 'roll' | 'numeric' | 'blur' | 'fade'
   | {
-      type: 'blur' | 'fade';
-      unit?: 'auto' | 'character' | 'word' | 'line';
-      stagger?: number;
-      duration?: number;
-    }
-  | {
-      type: 'stream';
-      charsPerSecond?: number;
+      type: 'roll' | 'numeric' | 'blur' | 'fade';
+      duration?: number;            // ms; per-type defaults as contentTransition (roll 200)
+      direction?: 'up' | 'down';    // default 'up'
+      unit?: 'auto' | 'word' | 'whole';
+      stagger?: number;             // ms; default 0, roll 30; spread capped at 300 ms
+      delay?: number;               // ms; default 0
     };
+
+// Planned, not implemented: 'stream' (and a { type: 'stream'; charsPerSecond?: number } form).
 ```
 
 - Names avoid Reanimated collisions (`transition*` is Reanimated 4 CSS transitions;
@@ -126,6 +126,8 @@ own. Arabic stays joined because we crop an already-shaped line.
 - **Accessibility:** screen readers get the new text immediately; animation is visual only.
 - **Recycling:** `prepareForRecycle` cancels any running transition.
 - **First mount:** `contentTransition` does not run on mount; `reveal` does.
+- **`transitionKey`:** when set, only text changes that come with a new key run
+  `contentTransition` (see below).
 
 ## Architecture
 
@@ -212,8 +214,8 @@ old text, new text, mode → expected segments) run by both platforms' unit test
 | 1 | Prop plumbing JS → C++ → native, no animation. Types, normalization, web no-op. | Props reach native on both platforms; parity still green |
 | 2 | Engine + `contentTransition` (`numeric`, `blur`, `fade`), single-line. Fallbacks, interruption, reduce motion, recycling. | Fixtures green on both; parity green at endpoints; perf target met |
 | 3 | Malaa integration via `yalc`; release `0.20.0-beta.0`. | `AnimatedMoneyText` uses `contentTransition="numeric"` on device |
-| 4 | `reveal` (`blur`, `fade`), stagger, multi-line segment rects. | Parity green; multi-line fixtures green |
-| 5 | `reveal="stream"`: rate-limited reveal cursor, line reflow, height follows RN layout (grows per line). | Smooth reveal under bursty input |
+| 4 | `reveal` (`roll`, `numeric`, `blur`, `fade`), stagger, delay. **Done** (see below). | Parity green; reveal fixtures green |
+| 5 | `reveal="stream"`: rate-limited reveal cursor, line reflow, height follows RN layout (grows per line). **Not implemented.** | Smooth reveal under bursty input |
 
 ## Phase 0 — results
 
@@ -402,6 +404,157 @@ Stress card in the example (4 texts changing every frame, 20–30 s):
 
 (Simulator/emulator, debug builds; the emulator is noisy, so compare medians of several runs.)
 
+## `roll`, `stagger`, `scope`, `minInterval` — done
+
+`roll` is a fourth content transition, made for values that change quickly (chart scrubbing,
+slider dragging), measured from a banking-app reference video. `numeric` is unchanged.
+
+```ts
+contentTransition="roll"
+// ≡ { type: 'roll', direction: 'up', duration: 200, stagger: 30, unit: 'auto', scope: 'all' }
+```
+
+- **Look** (motion table, both timing files): rise 0.25 × line height (≈ 0.3 em), no shrink,
+  blur 0.2 × numeric's. Leaving glyphs go up and fade, arriving ones rise from below. Same
+  spring; at 200 ms a segment is ~90% settled after 125 ms.
+- **Plan**: numeric's segmentation and slots (shared non-digit prefix/suffix, the rest aligned
+  from the trailing end), caps and fallbacks. `scope` (roll only) picks what is replaced on a
+  change: `all` (default) every slot, unchanged ones too; `numbers` every slot but the shared
+  prefix/suffix (`SAR ` stays put); `changed` only what changed (numeric's diff).
+- **`stagger`** (ms, every type; default 0, 30 for roll): each changed position starts
+  `index × stagger` after the first changed one, in logical order (unchanged positions in
+  between count). A removed segment and its replacement share an index. The spread is capped
+  at 300 ms by shortening the step. The index is computed in both plan files (`staggerIndex`)
+  and checked by the fixtures' last column (43 rows).
+- **Retargeting with stagger**: a staggered leave is a pending leave (the segment carries on
+  until its turn; it no longer follows its slot when the width changes, see "Leaving segments
+  never move sideways" below). On a new change, segments that
+  have started leaving hurry out; ones still waiting keep their schedule; kept ones re-aim at
+  once. An arriving segment replaced before it showed (still waiting, or fainter than
+  `takeoverOpacity`, roll only: 0.9) hands its timeline to its replacement.
+- **Throttle** (roll only): a change that arrives before the previous roll has landed is held
+  back; one roll to the latest text runs when the wait is up, and the last change is always
+  shown. Wait: `minInterval` ms (`0` = off), by default the roll's stagger spread +
+  0.65 × duration (≈ 130 ms for one digit, 350–450 ms for a whole amount). Tried first without
+  it and with a fixed 130 ms: every digit was permanently mid-roll and pale while scrubbing.
+- Native props added: `contentTransitionStagger`, `contentTransitionScope`,
+  `contentTransitionMinInterval`.
+- Example: `roll` + stagger / scope / min interval rows in the settings card, a chart-scrub
+  demo (drag or "Auto scrub"), "Auto drag" on the slider demo, deep-link query for settings,
+  `only=` and `autorun=1`. Parity cases `transition-roll` (width change) and
+  `transition-roll-mask`.
+
+Verified: fixtures 43/43 on iOS and Android; parity 27/27 identical and self-test 27/27
+detected on both; frame sheets of auto scrub on iOS (clean separate waves, label stays with
+`numbers`, width change slides). Not measured yet: frame pacing and memory against `none`
+(stress card, both platforms), and Android frame sheets with the final throttle.
+
+## `reveal` and `transitionKey` — done
+
+### `reveal`
+
+```tsx
+<AnimateableText text={amount} reveal="roll" contentTransition={{ type: 'roll', stagger: 40, duration: 300 }} />
+<AnimateableText text={title} reveal={{ type: 'blur', unit: 'word', stagger: 40, delay: 300 }} />
+```
+
+- Native props: `revealType`, `revealDuration` (ms), `revealDirection` (`up`/`down`),
+  `revealUnit`, `revealStagger` (ms), `revealDelay` (ms). JS defaults: as `contentTransition`'s
+  per type (`roll`: 200 ms, stagger 30), direction `up`, delay 0. Web: ignored.
+- **When:** once per mounted view, the first time it shows non-empty text: on mount with text,
+  or on the first `'' → text` change after mounting empty. That first show uses `reveal`, not
+  `contentTransition`, whatever `transitionKey` says. Later changes use `contentTransition`.
+  With `reveal` `'none'` (default) nothing changes: `'' → text` after mount is an ordinary
+  change (runs `contentTransition`, subject to `transitionKey`), and the mount itself is instant.
+- **Look:** every segment arrives from nothing with the type's arriving motion (roll: rises
+  0.25 × line height from below, fades in, light blur), staggered in logical order from the
+  first segment, after `delay`. The plan is `revealPlanForText:` / `TextTransitionPlan.reveal`:
+  the plan from empty text (every segment inserted, numeric/LCS/whole agree), checked by the
+  `reveal:<type>[:unit]` fixture rows (old text `∅`). `numberOfLines` / `adjustsFontSizeToFit`
+  fall back to a whole-text fade-in; multi-line text reveals per segment.
+- **Where it starts:** iOS mounts (`finalizeUpdates`) before the view is in a window, so the
+  reveal is pending (RN's text view hidden) until `didMoveToWindow`. Android starts it on the
+  first draw. Either way it plays when the text first appears on screen.
+- **Changes during a reveal** retarget like any change (waiting segments keep their schedule and
+  hand it to their replacements; nothing snaps). With `contentTransition` `'none'`, a change
+  during a reveal carries on with the reveal's look (no delay). The reveal never holds changes
+  back (no roll throttle).
+- **Delay:** a change during the delay doesn't cut it short: no segment arrives before the
+  reveal's delay is over (`_arrivalsNotBefore` / `arrivalsNotBeforeMs` in the animators). Found
+  in a recording: an update at 100 ms with a 300 ms delay first started the reveal at ~150 ms.
+- Reduce Motion (iOS) / animator scale 0 (Android): shown instantly. Accessibility gets the text
+  immediately (only RN's text subview is hidden; the paragraph view's label is the text).
+  Recycling (`prepareForRecycle` / `prepareToRecycleView`) resets "already revealed" and cancels
+  a running or pending reveal.
+
+### `transitionKey`
+
+```tsx
+<AnimateableText text={isHidden ? '*****' : amount} transitionKey={isHidden} contentTransition="roll" />
+const animatedProps = useAnimatedProps(() => ({ text: …, transitionKey: hidden.value }));
+<AnimateableText text={label} transitionKey={[isHidden, currency]} contentTransition="roll" />
+```
+
+Like SwiftUI's `.animation(_:value:)`. Top-level prop (not inside `contentTransition`):
+`string | number | boolean | null | undefined`, or an array of those (compared like a React
+dependency array).
+
+- **Rule:** without a key (`undefined`, or `null` at the top level), every text change runs
+  `contentTransition` (unchanged behaviour). With a key, a text change animates only if the key
+  differs from the key at the previous text change. A key change without a text change therefore
+  arms the next text change: key-then-text in separate commits animates. Text-then-key in
+  separate commits can't animate (the text change sees the old key; the key change arms the
+  next text change instead). Set both in the same update: as props in the same render, or
+  returned together from the same `useAnimatedProps`. Native compares the key at change time,
+  so it doesn't matter which path the text took.
+- **From rest** a change that doesn't animate swaps instantly: no layers/nodes, no roll throttle
+  hold. **While a transition is still running**, such a change retargets it as any change does
+  (never snaps); it doesn't stop the running animation.
+- **Encoding:** the raw prop value is normalised natively (C++ `TransitionKey.h` from the
+  `RawValue`/`folly::dynamic`; Android `TransitionKey.kt` from `Dynamic`), so it works from
+  `useAnimatedProps` on the UI thread too. JS passes the value through unchanged. Canonical
+  string, same on both platforms (`fixtures/transition-keys.tsv`, 28 rows): `null` (also
+  `undefined` inside an array), `true`/`false`, integral numbers as decimal integers (`1` and
+  `1.0` equal, `-0` is `0`), other numbers as `0x` + the IEEE-754 bits, `"strings"` with `\` and
+  `"` escaped, `[arrays]` (nested arrays work), objects (not supported) all `{}`. So `1`, `"1"`
+  and `true` are different keys. On Android, if RN sends diffed props from C++
+  (`getDiffProps`), Java sees C++'s canonical string; it re-encodes it as a string, which is
+  still equal for equal keys.
+- **Where:** the decision is one line in each view (iOS `textMayHaveChanged`, Android
+  `prepareForTextChange` / `onTextApplied`), not in the plan files; covered by the example's
+  "transitionKey: hide / show" card and recordings, not by plan fixtures.
+- Native prop: `transitionKey` (also in `validAttributes` and Reanimated's
+  `addWhitelistedNativeProps`).
+
+### Verification
+
+- Fixtures: plan 53/53 (10 new `reveal:` rows) and keys 28/28 on iOS (macOS build) and Android
+  (JVM).
+- Parity: 27/27 identical, self-test 27/27 detected, iOS (iPhone 18 Pro sim, iOS 27.2) and
+  Android (Pixel 10 Pro XL emulator).
+- Frame sheets (both platforms, `only=key&autorun=1`): hide → `*****` rolls on all three nodes,
+  the decimals node rolls out to `''` and back in, show rolls back, value changes while visible
+  swap instantly (both paths), key-then-text (150 ms apart) rolls, the array key rolls only on
+  currency changes. Reveal (`only=reveal&autorun=1`): on mount, empty → load, update at 100 ms
+  (retargets, no snap), delay 300 ms (first ink ~316 ms after mount; 1.03 s for empty → load).
+- Stress card, 30 s: iOS RSS flat (blur 500 → 458 MB, ~50% CPU; none 469 → 456 MB; roll
+  483 → 454 MB). Android PSS flat (310–324 MB), 3 alternating runs: frame p50 blur 53/44/42 ms,
+  none 31/31/30 ms (slower than the earlier 31–34 / 24–29 ms on both, emulator noise likely;
+  nothing per frame changed).
+- Not run: an iOS 18 simulator (no runtime installed), a physical device.
+
+### Example
+
+- `transitionKey: hide / show` (`only=key`): Malaa's config `{ type: 'roll', stagger: 40,
+  duration: 300 }`; (1) `text` + `transitionKey` props, (2) integer + decimals from
+  `useAnimatedProps` returning `{ text, transitionKey }` (decimals `'' ` while hidden), (3)
+  `transitionKey={[isHidden, currency]}`. Hide/Show, Change value (instant), Auto change,
+  "key, then text" (key first, text 150 ms later), currency switch. `autorun=1` steps through
+  hide, show, change ×2, key-then-text hide/show, currency, change, currency (1.3 s apart).
+- `reveal` (`only=reveal`, `reveal=<type>`, `revealDelay=<ms>`): Remount, Mount empty then load
+  (700 ms), Remount + update at 100 ms; type and delay switches. `autorun=1` cycles the three
+  mounts every 2.2 s.
+
 ### Running parity
 
 ```bash
@@ -414,6 +567,103 @@ node scripts/parity.mjs --platform ios --device <simulator udid> --selftest
 
 `--pageSize 1` for the largest accessibility sizes. Screenshots and diffs land in
 `example/parity-output/` (git-ignored).
+
+## `contentTransition` delay and "leaving segments never move sideways" — done
+
+### `delay`
+
+```tsx
+// Malaa's split amount: decimals start where the integer's wave ends.
+<AnimateableText animatedProps={integerProps} contentTransition={MONEY} reveal={MONEY} />
+<AnimateableText
+  animatedProps={decimalProps}
+  contentTransition={{ ...MONEY, delay: followingDelay(integerPositions) }}
+  reveal={{ ...MONEY, delay: followingDelay(integerPositions) }}
+/>
+// followingDelay(n) = n × min(40, 300 / (n − 1)): the integer's n positions with its capped step.
+```
+
+- `contentTransition.delay` (ms, every type, default 0), same meaning as `reveal.delay`: the
+  whole schedule (leaving, kept and arriving positions, with their stagger) starts `delay` after
+  the change. The old text stays on screen meanwhile: from rest the segments are set up at once
+  (old text visible, new text invisible and waiting), so RN's text view is hidden during the
+  delay. Native prop `contentTransitionDelay`; web ignores it.
+- **A change during the delay joins the pending transition**: it re-aims at the newest text and
+  keeps the original start (same rule as a change during the reveal's delay). Implemented in
+  the animators: every position's schedule counts from a base time, which is `now + delay`, or
+  the running transition's start if that is still in the future (`_transitionStart` /
+  `transitionStartMs`, replacing the reveal-only `_arrivalsNotBefore`). A change that arrives
+  after the start retargets as before and gets its own delay (each animating change is
+  delayed, so two nodes keep their wave on a retarget too).
+- Kept segments: ones at rest start their slide at the base time (they sit still during the
+  delay); ones already moving re-aim at once; ones still waiting for their start keep it. A
+  kept segment waiting for a delayed start is visible, so "waiting" (an invisible arrival, the
+  only kind that is dropped or handed over on a retarget) now also requires an invisible start
+  look.
+- **`transitionKey`**: a change that doesn't animate ignores the delay. From rest it is instant
+  (unchanged). If the running transition is still in its delay it joins it (keeps the start, so
+  nothing snaps and the newest text is what lands); otherwise it retargets at once.
+- **Roll throttle**: a change while the transition is still in its delay is never held (nothing
+  has moved yet; it re-aims instead). The automatic wait (stagger spread + 0.65 × duration) and
+  an explicit `minInterval` count from the transition's start, i.e. after its delay.
+- Reduce Motion / animator scale 0: instant, as before. The first show is `reveal`'s.
+- Text going back to the on-screen value during the delay is not special-cased: at the start,
+  the old text leaves and the same text arrives (consistent with the neighbour node's wave).
+
+### Leaving segments never move sideways
+
+Found in Malaa: with `roll` (scope `all`), `1,234.55 → *****` piled glyphs up (`34.55,2`): old
+digits still waiting for their stagger turn slid left into the narrower new slots before
+leaving (the "waiting leave follows its slot" rule). Unhide had a milder version (stars spread
+out while the digits arrived). Now, matching the banking-app reference:
+
+- A leaving segment, including one still waiting for its turn, keeps its x from the moment it
+  is told to leave (`hasFixedX` / `fixedTranslateX`) and only rises/fades there. The view-offset
+  shift (the view moved under the text) still applies, so it stays put on screen.
+- Arriving segments arrive straight at their final x. Kept (unchanged, not replaced) segments
+  still slide to their new x.
+- The slot-following block was removed from both animators.
+- First recording after that (chart auto-scrub): getting narrower was clean, but getting wider
+  (`597.15 → 1,745.31`) drew new digits at their final x over old digits still waiting for
+  their turn (`1,7455` for a few frames). Rule added: a waiting leave starts no later than the
+  first arrival that lands on it on screen (horizontal overlap > 30 % of the narrower glyph, same
+  line; `overlapsOnScreen`). Each glyph's own leave still starts from its own x; the wave
+  becomes left-to-right on screen.
+
+### Two nodes as one wave: `staggerOffset` / `staggerTotal`? — not added
+
+The 300 ms cap only shortens a node's step when its own spread would pass 300 ms (with
+`stagger: 40`, from 9 positions on). Below that, `delay = positions × 40` on the second node is
+exact. Above it, the consumer can get the same result with today's API: compute one step for
+the whole wave, `step = min(40, 300 / (totalPositions − 1))`, pass `stagger: step` to both nodes
+and `delay: integerPositions × step` to the second (the first node's own spread then never hits
+the cap). `staggerOffset` + `staggerTotal` would only move this arithmetic into native code
+(two more props on both platforms) and still need the consumer to count the positions (which
+change between visible and masked text), so it isn't worth it now. Cross-view coordination (a
+shared wave id) would remove the counting but needs a native registry: not worth it for one
+screen.
+
+### Verification
+
+- Fixtures: plan 53/53 and keys 28/28 on iOS (macOS build) and Android (JVM). The plan didn't
+  change (delay and the leave rules live in the animators).
+- `tsc`: root clean; example 12 errors (the known ones, none new).
+- Parity (final build): iOS 27/27 identical (3 of 4 runs; one run was 26/27 and its output was
+  overwritten before the case could be identified; machine load average ~150 from an unrelated
+  process, `--dwell 7000` needed for the screenshots to keep up), self-test 27/27 detected (no
+  blank crops). Android 27/27, self-test 27/27.
+- Frame sheets, iOS and Android (`only=key&autorun=1`): hide `1,234.55 → *****` without glyph
+  pile-up (old digits rise/fade where they are); show; 2a's decimals start after the
+  integer's wave (hide, show, roll value, reveal) while 2b's start with it; row 4 (`delay: 300`)
+  with a second change 120 ms later holds the old value, then rolls once straight to the newest
+  one. Chart auto-scrub (roll) with width changes in both directions is clean on both platforms.
+- Stress card, 30 s: iOS RSS flat (blur 238 → 206 MB, ~44 % CPU; none 214 → 152 MB; roll
+  218 → 208 MB). Android PSS flat (343–352 MB); 3 alternating runs, frame p50 blur 46/48/48 ms,
+  none 31/32/31 ms.
+- Known limitation: a delayed node next to one that gets wider (2a on a rolled value change
+  `987.65 → 15,374.30`) keeps its old text at its old screen x during the delay, so the wider
+  neighbour's new digits draw over it until it leaves. Malaa isn't affected (value changes
+  there don't animate; hide makes the integer narrower; on show the decimals have no old text).
 
 ## Housekeeping (separate small PRs)
 

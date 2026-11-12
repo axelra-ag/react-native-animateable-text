@@ -9,6 +9,7 @@
 static const NSRange JBNoRange = {NSNotFound, 0};
 
 @interface JBTextTransitionOp ()
+@property (nonatomic, readwrite) NSInteger staggerIndex;
 - (instancetype)initWithChange:(JBTextSegmentChange)change oldRange:(NSRange)oldRange newRange:(NSRange)newRange;
 @end
 
@@ -141,8 +142,15 @@ bool containsDigit(NSString *text)
 
 // Shared non-digit prefix and suffix (labels like "SAR ", "%", " ر.س") stay put;
 // the rest is aligned from the trailing end so units stay over units.
-NSArray<JBTextTransitionOp *> *numericOps(const std::vector<Segment> &oldSegments, const std::vector<Segment> &newSegments)
+// The slots are the same for every scope. Changed: a slot whose segment did not change is
+// kept. Numbers: the shared prefix and suffix are kept, every slot in between is replaced
+// (Removed + Inserted) even when its segment is the same. All: every slot is replaced.
+NSArray<JBTextTransitionOp *> *numericOps(const std::vector<Segment> &oldSegments,
+                                          const std::vector<Segment> &newSegments,
+                                          JBTextTransitionScope scope)
 {
+  bool keepsLabels = scope != JBTextTransitionScopeAll;
+  bool keepsUnchanged = scope == JBTextTransitionScopeChanged;
   size_t n = oldSegments.size();
   size_t m = newSegments.size();
   size_t prefix = 0;
@@ -158,8 +166,16 @@ NSArray<JBTextTransitionOp *> *numericOps(const std::vector<Segment> &oldSegment
   }
 
   NSMutableArray *ops = [NSMutableArray array];
+  auto addUnchanged = ^(NSRange oldRange, NSRange newRange) {
+    if (keepsLabels) {
+      add(ops, JBTextSegmentChangeKept, oldRange, newRange);
+    } else {
+      add(ops, JBTextSegmentChangeRemoved, oldRange, JBNoRange);
+      add(ops, JBTextSegmentChangeInserted, JBNoRange, newRange);
+    }
+  };
   for (size_t k = 0; k < prefix; k++) {
-    add(ops, JBTextSegmentChangeKept, oldSegments[k].range, newSegments[k].range);
+    addUnchanged(oldSegments[k].range, newSegments[k].range);
   }
 
   NSMutableArray *reversedMiddle = [NSMutableArray array];
@@ -168,7 +184,7 @@ NSArray<JBTextTransitionOp *> *numericOps(const std::vector<Segment> &oldSegment
   for (size_t k = 0; k < MAX(oldMiddle, newMiddle); k++) {
     const Segment *o = k < oldMiddle ? &oldSegments[n - suffix - 1 - k] : nullptr;
     const Segment *w = k < newMiddle ? &newSegments[m - suffix - 1 - k] : nullptr;
-    if (o && w && [o->text isEqualToString:w->text]) {
+    if (keepsUnchanged && o && w && [o->text isEqualToString:w->text]) {
       add(reversedMiddle, JBTextSegmentChangeKept, o->range, w->range);
       continue;
     }
@@ -179,7 +195,7 @@ NSArray<JBTextTransitionOp *> *numericOps(const std::vector<Segment> &oldSegment
   [ops addObjectsFromArray:[[reversedMiddle reverseObjectEnumerator] allObjects]];
 
   for (size_t k = suffix; k-- > 0;) {
-    add(ops, JBTextSegmentChangeKept, oldSegments[n - 1 - k].range, newSegments[m - 1 - k].range);
+    addUnchanged(oldSegments[n - 1 - k].range, newSegments[m - 1 - k].range);
   }
   return ops;
 }
@@ -217,6 +233,39 @@ NSArray<JBTextTransitionOp *> *lcsOps(const std::vector<Segment> &oldSegments, c
 
 const size_t kMaxLcsSegments = 400;
 
+// Positions in logical order: a Kept op is one position; a run of Removed ops followed by
+// Inserted ops shares positions, aligned at the run's trailing end when more were removed
+// (numeric slots) and at its start otherwise. Indices count from the first changed position.
+NSInteger assignStaggerIndices(NSArray<JBTextTransitionOp *> *ops)
+{
+  NSInteger position = 0;
+  NSInteger firstChanged = -1;
+  NSUInteger i = 0;
+  while (i < ops.count) {
+    if (ops[i].change == JBTextSegmentChangeKept) {
+      position++;
+      i++;
+      continue;
+    }
+    NSUInteger runStart = i;
+    while (i < ops.count && ops[i].change == JBTextSegmentChangeRemoved) i++;
+    NSInteger removed = i - runStart;
+    NSUInteger insertedStart = i;
+    while (i < ops.count && ops[i].change == JBTextSegmentChangeInserted) i++;
+    NSInteger inserted = i - insertedStart;
+    if (firstChanged < 0) firstChanged = position;
+    for (NSInteger k = 0; k < removed; k++) ops[runStart + k].staggerIndex = position + k - firstChanged;
+    NSInteger insertedOffset = MAX((NSInteger)0, removed - inserted);
+    for (NSInteger k = 0; k < inserted; k++) {
+      ops[insertedStart + k].staggerIndex = position + insertedOffset + k - firstChanged;
+    }
+    position += MAX(removed, inserted);
+  }
+  NSInteger maxIndex = 0;
+  for (JBTextTransitionOp *op in ops) maxIndex = MAX(maxIndex, op.staggerIndex);
+  return maxIndex;
+}
+
 } // namespace
 
 @implementation JBTextTransitionPlan
@@ -226,6 +275,7 @@ const size_t kMaxLcsSegments = 400;
   if (self = [super init]) {
     _ops = ops;
     _direction = direction;
+    _maxStaggerIndex = assignStaggerIndices(ops);
   }
   return self;
 }
@@ -235,7 +285,13 @@ const size_t kMaxLcsSegments = 400;
   if ([value isEqualToString:@"numeric"]) return JBTextTransitionModeNumeric;
   if ([value isEqualToString:@"blur"]) return JBTextTransitionModeBlur;
   if ([value isEqualToString:@"fade"]) return JBTextTransitionModeFade;
+  if ([value isEqualToString:@"roll"]) return JBTextTransitionModeRoll;
   return JBTextTransitionModeNone;
+}
+
++ (BOOL)isNumericMode:(JBTextTransitionMode)mode
+{
+  return mode == JBTextTransitionModeNumeric || mode == JBTextTransitionModeRoll;
 }
 
 + (JBTextTransitionUnit)unitFromString:(NSString *)value
@@ -245,11 +301,19 @@ const size_t kMaxLcsSegments = 400;
   return JBTextTransitionUnitAuto;
 }
 
++ (JBTextTransitionScope)scopeFromString:(NSString *)value
+{
+  if ([value isEqualToString:@"numbers"]) return JBTextTransitionScopeNumbers;
+  if ([value isEqualToString:@"changed"]) return JBTextTransitionScopeChanged;
+  return JBTextTransitionScopeAll;
+}
+
 + (instancetype)planFromText:(NSString *)oldText
                       toText:(NSString *)newText
                         mode:(JBTextTransitionMode)mode
                    direction:(NSString *)direction
                         unit:(JBTextTransitionUnit)unit
+                       scope:(JBTextTransitionScope)scope
 {
   std::vector<Segment> oldSegments = segmentText(oldText, unit);
   std::vector<Segment> newSegments = segmentText(newText, unit);
@@ -258,13 +322,29 @@ const size_t kMaxLcsSegments = 400;
     JBTextTransitionPlan *plan = [self wholeTextPlanFromText:oldText toText:newText];
     return [[self alloc] initWithOps:plan.ops direction:resolvedDirection];
   }
-  if (mode == JBTextTransitionModeNumeric) {
-    return [[self alloc] initWithOps:numericOps(oldSegments, newSegments) direction:resolvedDirection];
+  if ([self isNumericMode:mode]) {
+    return [[self alloc] initWithOps:numericOps(oldSegments, newSegments,
+                                             mode == JBTextTransitionModeRoll ? scope : JBTextTransitionScopeChanged)
+                           direction:resolvedDirection];
   }
   if (oldSegments.size() > kMaxLcsSegments || newSegments.size() > kMaxLcsSegments) {
     return [self wholeTextPlanFromText:oldText toText:newText];
   }
   return [[self alloc] initWithOps:lcsOps(oldSegments, newSegments) direction:resolvedDirection];
+}
+
++ (instancetype)revealPlanForText:(NSString *)text
+                             mode:(JBTextTransitionMode)mode
+                        direction:(NSString *)direction
+                             unit:(JBTextTransitionUnit)unit
+{
+  // From empty text every segment is inserted: numeric slots, LCS and whole text agree.
+  return [self planFromText:@""
+                     toText:text
+                       mode:mode
+                  direction:[direction isEqualToString:@"down"] ? @"down" : @"up"
+                       unit:unit
+                      scope:JBTextTransitionScopeAll];
 }
 
 + (instancetype)wholeTextPlanFromText:(NSString *)oldText toText:(NSString *)newText
@@ -286,6 +366,15 @@ const size_t kMaxLcsSegments = 400;
                                                                                           withString:@"␠"]]];
   }
   return [tokens componentsJoinedByString:@" "];
+}
+
+- (NSString *)staggerFixtureDescription
+{
+  NSMutableArray<NSString *> *tokens = [NSMutableArray array];
+  for (JBTextTransitionOp *op in _ops) {
+    if (op.change != JBTextSegmentChangeKept) [tokens addObject:[NSString stringWithFormat:@"%ld", (long)op.staggerIndex]];
+  }
+  return tokens.count > 0 ? [tokens componentsJoinedByString:@" "] : @"∅";
 }
 
 @end

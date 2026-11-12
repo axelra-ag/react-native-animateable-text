@@ -15,6 +15,18 @@ interface NativeProps extends ViewProps {
   contentTransitionDuration?: WithDefault<Float, 0>;
   contentTransitionDirection?: WithDefault<string, 'auto'>;
   contentTransitionUnit?: WithDefault<string, 'auto'>;
+  contentTransitionStagger?: WithDefault<Float, 0>;
+  contentTransitionScope?: WithDefault<string, 'all'>;
+  contentTransitionMinInterval?: WithDefault<Float, -1>;
+  contentTransitionDelay?: WithDefault<Float, 0>;
+  // Also a number, boolean or array of those at runtime; normalised natively.
+  transitionKey?: string;
+  revealType?: WithDefault<string, 'none'>;
+  revealDuration?: WithDefault<Float, 0>;
+  revealDirection?: WithDefault<string, 'up'>;
+  revealUnit?: WithDefault<string, 'auto'>;
+  revealStagger?: WithDefault<Float, 0>;
+  revealDelay?: WithDefault<Float, 0>;
 }
 
 export default codegenNativeComponent<NativeProps>('JBAnimatedText');

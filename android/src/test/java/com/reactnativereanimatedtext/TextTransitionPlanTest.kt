@@ -17,22 +17,33 @@ class TextTransitionPlanTest {
       val columns = line.split("\t")
       val oldText = fromFixture(columns[2])
       val newText = fromFixture(columns[3])
-      // Mode column: "mode" or "mode:unit".
+      // Mode column: "mode", "mode:unit" or "mode:unit:scope"; "reveal:mode[:unit]" for a reveal.
       val modeAndUnit = columns[0].split(":")
       val plan =
-          TextTransitionPlan.plan(
-              oldText,
-              newText,
-              TextTransitionMode.fromString(modeAndUnit[0]),
-              columns[1],
-              TextTransitionUnit.fromString(modeAndUnit.getOrNull(1)))
+          if (modeAndUnit[0] == "reveal") {
+            TextTransitionPlan.reveal(
+                newText,
+                TextTransitionMode.fromString(modeAndUnit[1]),
+                columns[1],
+                TextTransitionUnit.fromString(modeAndUnit.getOrNull(2)))
+          } else {
+            TextTransitionPlan.plan(
+                oldText,
+                newText,
+                TextTransitionMode.fromString(modeAndUnit[0]),
+                columns[1],
+                TextTransitionUnit.fromString(modeAndUnit.getOrNull(1)),
+                TextTransitionScope.fromString(modeAndUnit.getOrNull(2)))
+          }
       val direction = if (plan.direction > 0) "up" else "down"
       val ops = plan.fixtureDescription(oldText, newText)
+      val stagger = plan.staggerFixtureDescription()
+      val expectedStagger = columns.getOrElse(6) { "(missing)" }
       total++
-      if (direction != columns[4] || ops != columns[5]) {
+      if (direction != columns[4] || ops != columns[5] || stagger != expectedStagger) {
         failures.add(
             "${columns[0]}  ${columns[2]} → ${columns[3]}\n" +
-                "  expected: ${columns[4]}  ${columns[5]}\n  actual:   $direction  $ops")
+                "  expected: ${columns[4]}  ${columns[5]}  [$expectedStagger]\n  actual:   $direction  $ops  [$stagger]")
       }
     }
     println("Android transition plan: ${total - failures.size}/$total fixtures passed")
